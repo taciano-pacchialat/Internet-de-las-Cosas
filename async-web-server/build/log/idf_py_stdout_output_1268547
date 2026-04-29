@@ -1,0 +1,5 @@
+Command: ninja all
+[0/1] Re-running CMake...
+-- Component directory /home/taci/.espressif/v6.0.1/esp-idf/components/mqtt does not contain a CMakeLists.txt file. No component will be added
+-- Minimal build - OFF
+-- Building ESP-IDF components for target esp32

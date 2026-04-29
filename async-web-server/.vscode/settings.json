@@ -1,0 +1,17 @@
+{
+  "idf.currentSetup": "/home/taci/.espressif/v6.0.1/esp-idf",
+  "editor.fontFamily": "'JetBrains Mono', 'JetBrainsMono Nerd Font', 'JetBrains Mono Nerd Font', monospace",
+  "editor.fontLigatures": true,
+  "editor.codeLensFontFamily": "'JetBrains Mono', 'JetBrainsMono Nerd Font', 'JetBrains Mono Nerd Font', monospace",
+  "editor.inlayHints.fontFamily": "'JetBrains Mono', 'JetBrainsMono Nerd Font', 'JetBrains Mono Nerd Font', monospace",
+  "terminal.integrated.fontFamily": "'JetBrains Mono', 'JetBrainsMono Nerd Font', 'JetBrains Mono Nerd Font', monospace",
+  "terminal.integrated.fontWeight": "500",
+  "clangd.path": "/home/taci/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--compile-commands-dir=${workspaceFolder}/build",
+    "--query-driver=**"
+  ],
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.errorSquiggles": "disabled"
+}

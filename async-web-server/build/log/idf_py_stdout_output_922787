@@ -1,0 +1,37 @@
+Command: ninja flash
+[1/6] cd /home/taci/unlp/iot/async-web-server/build && /home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python /home/taci/.espressif/v6.0.1/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/taci/unlp/iot/async-web-server/build/partition_table/partition-table.bin /home/taci/unlp/iot/async-web-server/build/async-web-server.bin
+async-web-server.bin binary size 0xe0fb0 bytes. Smallest app partition is 0x100000 bytes. 0x1f050 bytes (12%) free.
+[2/6] cd /home/taci/unlp/iot/async-web-server/build && /home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python /home/taci/.espressif/v6.0.1/esp-idf/components/spiffs/spiffsgen.py 0xef000 /home/taci/unlp/iot/async-web-server/spiffs_image /home/taci/unlp/iot/async-web-server/build/spiffs.bin --page-size=256 --obj-name-len=32 --meta-len=4 --use-magic --use-magic-len
+[3/6] Performing build step for 'bootloader'
+[1/1] cd /home/taci/unlp/iot/async-web-server/build/bootloader && /home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python /home/taci/.espressif/v6.0.1/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 /home/taci/unlp/iot/async-web-server/build/bootloader/bootloader.bin
+Bootloader binary size 0x6610 bytes. 0x9f0 bytes (9%) free.
+[4/6] No install step for 'bootloader'
+[5/6] Completed 'bootloader'
+[5/6] Running utility command for flash
+esptool --chip esp32 -p /dev/ttyUSB0 -b 460800 --before=default-reset --after=hard-reset write-flash --flash-mode dio --flash-freq 40m --flash-size 2MB 0x1000 bootloader/bootloader.bin 0x8000 partition_table/partition-table.bin 0x10000 async-web-server.bin 0x110000 spiffs.bin
+esptool v5.3.dev2
+Serial port /dev/ttyUSB0:
+Connecting......
+[1A[2K[1A[2KConnected to ESP32 on /dev/ttyUSB0:
+Chip type:          ESP32-D0WD-V3 (revision v3.1)
+Features:           Wi-Fi, BT, Dual Core + LP Core, 240MHz, Vref calibration in eFuse, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                08:d1:f9:ef:7f:3c
+
+Uploading stub flasher...
+Running stub flasher...
+[1A[2K[1A[2KStub flasher running.
+Changing baud rate to 460800...
+Changed.
+
+Configuring flash size...
+
+Writing 'bootloader/bootloader.bin' at 0x00001000...
+SHA digest in image updated.
+Flash will be erased from 0x00001000 to 0x00007fff...
+Compressed 26128 bytes to 16580...
+[KWriting at 0x00001000 [                              ]   0.0% 0/16580 bytes... [KWriting at 0x0000750d [============================> ]  98.8% 16384/16580 bytes... [KWriting at 0x00007610 [==============================] 100.0% 16580/16580 bytes... 
+[1A[2K[1A[2KWrote 26128 bytes (16580 compressed) at 0x00001000 in 0.6 seconds (378.0 kbit/s).
+Verifying written data...
+[1A[2KHash of data verified.
+

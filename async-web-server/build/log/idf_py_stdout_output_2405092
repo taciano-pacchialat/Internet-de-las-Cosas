@@ -1,0 +1,206 @@
+Command: /home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python /home/taci/.espressif/v6.0.1/esp-idf/tools/idf_monitor.py -p /dev/ttyUSB0 -b 115200 --toolchain-prefix xtensa-esp32-elf- --target esp32 --revision 0 /home/taci/unlp/iot/async-web-server/build/async-web-server.elf /home/taci/unlp/iot/async-web-server/build/bootloader/bootloader.elf -m '/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python' '/home/taci/.espressif/v6.0.1/esp-idf/tools/idf.py'
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x17 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+entry 0x40080644
+[0;32mI (27) boot: ESP-IDF v6.0.1-dirty 2nd stage bootloader[0m
+[0;32mI (27) boot: compile time Apr 28 2026 22:44:37[0m
+[0;32mI (28) boot: Multicore bootloader[0m
+[0;32mI (29) boot: chip revision: v3.1[0m
+[0;32mI (32) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (36) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32: SPI Flash Size : 2MB[0m
+[0;32mI (43) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (63) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (76) boot:  3 spiffs           Unknown data     01 82 00110000 000ef000[0m
+[0;32mI (82) boot: End of partition table[0m
+[0;32mI (86) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=20a70h (133744) map[0m
+[0;32mI (141) esp_image: segment 1: paddr=00030a98 vaddr=3ffb0000 size=045a8h ( 17832) load[0m
+[0;32mI (148) esp_image: segment 2: paddr=00035048 vaddr=40080000 size=0afd0h ( 45008) load[0m
+[0;32mI (167) esp_image: segment 3: paddr=00040020 vaddr=400d0020 size=a8878h (690296) map[0m
+[0;32mI (413) esp_image: segment 4: paddr=000e88a0 vaddr=4008afd0 size=0a6a0h ( 42656) load[0m
+[0;32mI (430) esp_image: segment 5: paddr=000f2f48 vaddr=50000000 size=00028h (    40) load[0m
+[0;32mI (441) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (442) boot: Disabling RNG early entropy source...[0m
+[0;32mI (452) cpu_start: Multicore app[0m
+[0;32mI (460) cpu_start: GPIO 3 and 1 are used as console UART I/O pins[0m
+[0;32mI (461) cpu_start: Pro cpu start user code[0m
+[0;32mI (461) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (462) app_init: Application information:[0m
+[0;32mI (466) app_init: Project name:     async-web-server[0m
+[0;32mI (471) app_init: App version:      f1999bb-dirty[0m
+[0;32mI (475) app_init: Compile time:     Apr 28 2026 23:04:55[0m
+[0;32mI (480) app_init: ELF file SHA256:  a69d05b5e...[0m
+[0;32mI (485) app_init: ESP-IDF:          v6.0.1-dirty[0m
+[0;32mI (489) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (493) efuse_init: Max chip rev:     v3.99 [0m
+[0;32mI (497) efuse_init: Chip rev:         v3.1[0m
+[0;32mI (501) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (507) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (512) heap_init: At 3FFB9870 len 00026790 (153 KiB): DRAM[0m
+[0;32mI (517) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (523) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (528) heap_init: At 40095670 len 0000A990 (42 KiB): IRAM[0m
+[0;32mI (535) spi_flash: detected chip: generic[0m
+[0;32mI (537) spi_flash: flash io: dio[0m
+[0;33mW (540) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (554) main_task: Started on CPU0[0m
+[0;32mI (564) main_task: Calling app_main()[0m
+[0;32mI (614) MAIN: Inicializando NVS[0m
+[0;32mI (624) MAIN: Montando SPIFFS[0m
+[0;32mI (694) MAIN: Inicializando esp_bus[0m
+[0;32mI (694) esp_bus: Task started[0m
+[0;32mI (694) esp_bus: Initialized[0m
+[0;32mI (694) MAIN: Inicializando DHT11[0m
+[0;32mI (694) DHT11: DHT11 inicializado en GPIO 4[0m
+[0;32mI (704) DHT11: Tarea DHT11 iniciada[0m
+[0;32mI (704) MAIN: Inicializando WiFi Manager[0m
+[0;32mI (724) wifi:wifi driver task: 3ffc50d4, prio:23, stack:6656, core=0[0m
+[0;32mI (724) wifi:wifi firmware version: b37c951[0m
+[0;32mI (724) wifi:wifi certification version: v7.0[0m
+[0;32mI (724) wifi:config NVS flash: enabled[0m
+[0;32mI (724) wifi:config nano formatting: disabled[0m
+[0;32mI (734) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (734) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (744) wifi:Init management short buffer num: 32[0m
+[0;32mI (744) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (744) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (754) wifi:Init static rx buffer num: 10[0m
+[0;32mI (754) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (764) wifi_init: rx ba win: 6[0m
+[0;32mI (764) wifi_init: accept mbox: 6[0m
+[0;32mI (764) wifi_init: tcpip mbox: 32[0m
+[0;32mI (774) wifi_init: udp mbox: 6[0m
+[0;32mI (774) wifi_init: tcp mbox: 6[0m
+[0;32mI (774) wifi_init: tcp tx win: 5760[0m
+[0;32mI (774) wifi_init: tcp rx win: 5760[0m
+[0;32mI (784) wifi_init: tcp mss: 1440[0m
+[0;32mI (784) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (784) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (794) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06[0m
+[0;33mW (794) phy_init: failed to load RF calibration data (0x1102), falling back to full calibration[0m
+[0;32mI (884) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(2)[0m
+[0;32mI (894) wifi:mode : sta (08:d1:f9:ef:7f:3c)[0m
+[0;32mI (904) wifi:enable tsf[0m
+[0;32mI (904) esp_bus: Registered 'wifi'[0m
+[0;32mI (904) wifi_mgr_http: Initializing HTTP interface at /api/wifi[0m
+[0;32mI (904) wifi_mgr: STA started[0m
+[0;32mI (914) wifi_mgr_http: HTTP server started[0m
+[0;32mI (914) wifi_mgr_http: Simple setup page registered at /[0m
+[0;32mI (914) wifi_mgr_http: Captive portal detection enabled[0m
+[0;32mI (924) wifi_mgr_http: HTTP handlers registered[0m
+[0;32mI (924) wifi_mgr: Task started[0m
+[0;32mI (924) wifi_mgr_ap: Starting AP: ESP32-Config[0m
+[0;32mI (934) wifi:mode : sta (08:d1:f9:ef:7f:3c) + softAP (08:d1:f9:ef:7f:3d)[0m
+[0;32mI (934) wifi:Total power save buffer number: 16[0m
+[0;32mI (944) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (944) wifi:Init max length of beacon: 752/752[0m
+[0;32mI (954) wifi_mgr: WiFi Manager initialized, 0 networks configured[0m
+[0;32mI (954) MAIN: Inicializando servidor web[0m
+[0;32mI (974) wifi:Total power save buffer number: 16[0m
+[0;32mI (984) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1[0m
+[0;32mI (984) wifi_mgr: AP started[0m
+[0;32mI (984) wifi_mgr_dns: DNS server started on port 53[0m
+[0;32mI (984) wifi_mgr: AP stopped[0m
+[0;32mI (984) wifi_mgr_dns: DNS server task started[0m
+[0;32mI (994) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1[0m
+[0;32mI (1004) wifi_mgr: AP started[0m
+[0;32mI (1484) WEB_SERVER: Iniciando servidor web[0m
+[0;32mI (1484) WEB_SERVER: GPIO LED configurado en 2[0m
+[0;32mI (1484) WEB_SERVER: Manejadores registrados[0m
+[0;32mI (1484) WEB_SERVER: Servidor iniciado correctamente[0m
+[0;32mI (1484) MAIN: Esperando conexión WiFi[0m
+[0;32mI (2724) DHT11: Lectura OK: T=20.0°C, H=65.0%[0m
+[0;32mI (10754) DHT11: Lectura OK: T=20.0°C, H=65.0%[0m
+[0;32mI (18774) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (26794) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;33mW (31484) MAIN: WiFi no conectado - portal cautivo activo[0m
+[0;32mI (34814) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (42834) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (50854) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (58874) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (66894) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (74914) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (82944) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (90974) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (99004) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (107034) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (115064) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (123084) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (131114) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (139134) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (140004) wifi:new:<1,1>, old:<1,1>, ap:<1,1>, sta:<0,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (140004) wifi:station: e0:d4:64:e3:44:14 join, AID=1, bgn, 40U[0m
+[0;32mI (140014) wifi_mgr: Station connected to AP, MAC: e0:d4:64:e3:44:14[0m
+[0;32mI (140034) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2[0m
+[0;33mW (140264) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (140264) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (140924) wifi:<ba-add>idx:2 (ifx:1, e0:d4:64:e3:44:14), tid:0, ssn:21, winSize:64[0m
+[0;33mW (142244) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (142244) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;33mW (146244) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (146244) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (147154) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;33mW (154254) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (154254) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (155184) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (163214) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (168594) wifi_mgr_net: Starting scan[0m
+[0;32mI (171244) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (171454) wifi_mgr: Scan done[0m
+[0;32mI (171454) wifi_mgr_net: Scan done, found 15 networks[0m
+[0;33mW (171484) httpd_uri: httpd_uri: URI '/favicon.ico' not found[0m
+[0;33mW (171484) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;33mW (171504) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (171514) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (179264) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (182644) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (182644) wifi:<ba-add>idx:2 (ifx:1, e0:d4:64:e3:44:14), tid:0, ssn:250, winSize:64[0m
+[0;32mI (183844) wifi_mgr_nvs: Saved 1 networks to NVS[0m
+[0;32mI (183844) wifi_mgr_net: Network added: Personal-140-5GHz[0m
+[0;32mI (183864) wifi_mgr_net: Connecting to Personal-140-5GHz[0m
+[0;33mW (183874) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2[0m
+[0;32mI (185234) wifi:primary chan differ, old=1, new=8, start CSA timer[0m
+[0;32mI (185634) wifi:switch to channel 8[0m
+[0;32mI (185634) wifi:ap channel adjust o:1,1 n:8,2[0m
+[0;32mI (185634) wifi:new:<8,2>, old:<1,1>, ap:<8,2>, sta:<0,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (185644) wifi:new:<8,2>, old:<8,2>, ap:<8,2>, sta:<8,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (185644) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (185664) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (185664) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (185674) wifi:state: run -> init (0x2a0)[0m
+[0;32mI (185684) wifi:new:<8,2>, old:<8,2>, ap:<8,2>, sta:<8,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;33mW (185684) wifi_mgr: STA disconnected from Personal-140-5GHz, reason: 2[0m
+[0;32mI (187294) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (195324) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;33mW (202254) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (202254) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (203344) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (211374) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (219404) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;33mW (221714) httpd_uri: httpd_uri: URI '/nm-check.txt' not found[0m
+[0;33mW (221714) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI[0m
+[0;32mI (221714) wifi:station: e0:d4:64:e3:44:14 leave, AID = 1, reason = 3, bss_flags is 33786979, bss:0x3ffd16e8[0m
+[0;32mI (221734) wifi:new:<8,0>, old:<8,2>, ap:<8,2>, sta:<8,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (221734) wifi:<ba-del>idx:2, tid:0[0m
+[0;32mI (221744) wifi:new:<8,2>, old:<8,0>, ap:<8,2>, sta:<8,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (227424) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (235454) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (243474) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (251504) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (259534) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (267564) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (275594) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (283624) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (291644) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
+[0;32mI (299674) DHT11: Lectura OK: T=20.0°C, H=61.0%[0m
