@@ -39,7 +39,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Inicializando NVS");
     
     esp_err_t ret = nvs_flash_init();
-    nvs_flash_erase();
+    // nvs_flash_erase();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_LOGW(TAG, "NVS necesita recuperacion, borrando una vez");
         ESP_ERROR_CHECK(nvs_flash_erase());
