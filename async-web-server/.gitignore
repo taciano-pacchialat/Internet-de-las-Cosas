@@ -1,0 +1,60 @@
+# Build outputs and temporary build files
+/build/
+/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+project_description.json
+
+# Flash / flasher args and generated files
+flash_args
+flash_args.in
+flash_app_args
+flash_bootloader_args
+flasher_args.json
+flasher_args.json.in
+flasher_args.json.lock
+
+# SDK / IDF generated configs and helper files
+sdkconfig
+sdkconfig.old
+sdkconfig.cmake
+sdkconfig.h
+sdkconfig.json
+
+# espressif/IDF local environment
+.espressif/
+.esp-idf/
+.esp/
+idf.py
+idf/
+idf_tools/
+
+# Partition image / build artifacts
+*.bin
+*.elf
+*.map
+*.hex
+*.img
+*.ota.bin
+
+# SPIFFS build artifacts (if any) but keep spiffs_image/ sources
+*.spiffs
+spiffs_build/
+
+# Editor / OS temp files
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# Python / virtualenv
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Logs and caches
+*.log
+.cache/
