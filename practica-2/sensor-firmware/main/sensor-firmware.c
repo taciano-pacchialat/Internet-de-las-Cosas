@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -14,7 +15,7 @@
 #include "mqtt_comms/mqtt_comms.h"
 #include "esp_wifi_manager.h"
 #include "esp_bus.h"
-#define MQTT_BROKER    "mqtt://192.168.1.100"
+#define MQTT_BROKER    "mqtt://192.168.0.13"
 #define DHT_GPIO       4
 
 static const char *TAG = "MAIN";
@@ -25,13 +26,15 @@ void sensor_task(void *pvParameters)
 {
     float temp = 0.0;
     float hum = 0.0;
+    float aqi = 0.0;
 
     while (1) {
         if (app_dht_read_values(&temp, &hum) == ESP_OK) {
             cJSON *root = cJSON_CreateObject();
             cJSON_AddNumberToObject(root, "temp", temp);
             cJSON_AddNumberToObject(root, "hum", hum);
-            
+            aqi = esp_random() % 100;
+            cJSON_AddNumberToObject(root, "aqi", aqi);
             char *json_str = cJSON_PrintUnformatted(root);
             if (json_str != NULL) {
                 ESP_LOGI(TAG, "Publicando: %s", json_str);

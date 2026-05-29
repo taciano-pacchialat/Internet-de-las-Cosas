@@ -1,0 +1,26 @@
+# ESP-IDF / C++ Build artifacts
+sensor-firmware/build/
+sensor-firmware/managed_components/
+sensor-firmware/dependencies.lock
+sensor-firmware/sdkconfig.old
+
+# Docker container persistent data volumes
+mosquitto-broker/data/
+mosquitto-broker/log/
+mosquitto-broker/nodered_data/
+mosquitto-broker/influxdb_data/
+mosquitto-broker/grafana_data/
+
+# IDE / Editor specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db

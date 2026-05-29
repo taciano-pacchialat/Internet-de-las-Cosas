@@ -1,6 +1,0 @@
-dependencies:
-  idf: '>=4.4'
-  espressif/mqtt: '*'
-  esp-idf-lib/dht: '*'
-  tuanpmt/esp_wifi_manager: '*'
-  espressif/cjson: ^1.7.19~2
