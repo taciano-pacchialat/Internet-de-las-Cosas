@@ -719,6 +719,41 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/espressif__mqtt/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/espressif__cjson/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/esp-idf-lib__esp_idf_lib_helpers/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/esp-idf-lib__dht/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/espressif__mdns/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/tuanpmt__esp_bus/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/tuanpmt__esp_wifi_manager/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("/home/taci/unlp/iot/practica-2/ambient-monitor/build/esp-idf/main/cmake_install.cmake")
 endif()
 

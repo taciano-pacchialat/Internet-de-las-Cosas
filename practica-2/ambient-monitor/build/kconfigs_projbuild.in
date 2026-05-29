@@ -4,3 +4,4 @@ source "/home/taci/.espressif/v6.0.1/esp-idf/components/esp_app_format/Kconfig.p
 source "/home/taci/.espressif/v6.0.1/esp-idf/components/esp_rom/Kconfig.projbuild"
 source "/home/taci/.espressif/v6.0.1/esp-idf/components/esptool_py/Kconfig.projbuild"
 source "/home/taci/.espressif/v6.0.1/esp-idf/components/partition_table/Kconfig.projbuild"
+source "/home/taci/unlp/iot/practica-2/ambient-monitor/managed_components/tuanpmt__esp_wifi_manager/Kconfig.projbuild"

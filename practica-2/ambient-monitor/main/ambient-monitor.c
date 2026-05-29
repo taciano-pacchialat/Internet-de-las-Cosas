@@ -10,65 +10,16 @@
 #include "esp_netif.h"
 #include "cJSON.h"
 
-#include "dht/dht.h"
+#include "app_dht/app_dht.h"
 #include "mqtt_comms/mqtt_comms.h"
-
-#define WIFI_SSID      "MI_WIFI"
-#define WIFI_PASS      "MI_PASSWORD"
+#include "esp_wifi_manager.h"
+#include "esp_bus.h"
 #define MQTT_BROKER    "mqtt://192.168.1.100"
 #define DHT_GPIO       4
 
 static const char *TAG = "MAIN";
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                                    int32_t event_id, void* event_data)
-{
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        esp_wifi_connect();
-        ESP_LOGI(TAG, "Reintentando conectar al AP");
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(TAG, "IP obtenida:" IPSTR, IP2STR(&event->ip_info.ip));
-    }
-}
-
-void wifi_init_sta(void)
-{
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
-
-    esp_event_handler_instance_t instance_any_id;
-    esp_event_handler_instance_t instance_got_ip;
-    esp_event_handler_instance_register(WIFI_EVENT,
-                                        ESP_EVENT_ANY_ID,
-                                        &wifi_event_handler,
-                                        NULL,
-                                        &instance_any_id);
-    esp_event_handler_instance_register(IP_EVENT,
-                                        IP_EVENT_STA_GOT_IP,
-                                        &wifi_event_handler,
-                                        NULL,
-                                        &instance_got_ip);
-
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-        },
-    };
-    esp_wifi_set_mode(WIFI_MODE_STA);
-    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    esp_wifi_start();
-
-    ESP_LOGI(TAG, "wifi_init_sta completado.");
-}
+#define WIFI_MGR_ENABLE_WEBUI
 
 void sensor_task(void *pvParameters)
 {
@@ -107,11 +58,43 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "Iniciando modo STA WiFi");
-    wifi_init_sta();
+    ESP_LOGI(TAG, "Iniciando esp_bus y wifi_manager");
+    ESP_ERROR_CHECK(esp_bus_init());
 
-    // Esperar unos segundos para que se conecte la red antes de lanzar MQTT
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    wifi_manager_config_t config = {
+        .default_networks = NULL,
+        .default_network_count = 0,
+        .default_vars = NULL,
+        .default_var_count = 0,
+        .max_retry_per_network = 3,
+        .retry_interval_ms = 5000,
+        .auto_reconnect = true,
+        .default_ap = {
+            .ssid = "Ambient_Monitor",
+            .password = "",
+            .channel = 0,
+            .max_connections = 4,
+            .ip = "192.168.4.1",
+            .netmask = "255.255.255.0",
+            .gateway = "192.168.4.1",
+            .dhcp_start = "192.168.4.2",
+            .dhcp_end = "192.168.4.20",
+        },
+        .enable_captive_portal = true,
+        .stop_ap_on_connect = true,
+        .http = {
+            .enable = true,
+            .httpd = NULL,
+            .api_base_path = "/api/wifi",
+            .enable_auth = false,
+        },
+    };
+
+    ESP_ERROR_CHECK(wifi_manager_init(&config));
+
+    ESP_LOGI(TAG, "Esperando conexión WiFi...");
+    wifi_manager_wait_connected(portMAX_DELAY);
+    ESP_LOGI(TAG, "WiFi conectado!");
 
     ESP_LOGI(TAG, "Inicializando MQTT");
     mqtt_comms_init(MQTT_BROKER);

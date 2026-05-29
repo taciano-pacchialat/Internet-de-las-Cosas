@@ -360,7 +360,7 @@ Mbed TLS_IS_TOP_LEVEL:STATIC=OFF
 Mbed TLS_SOURCE_DIR:STATIC=/home/taci/.espressif/v6.0.1/esp-idf/components/mbedtls/mbedtls
 
 //No help, variable specified on the command line.
-PYTHON:UNINITIALIZED=/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python3
+PYTHON:UNINITIALIZED=/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python
 
 //No help, variable specified on the command line.
 PYTHON_DEPS_CHECKED:UNINITIALIZED=1
@@ -585,7 +585,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=157
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=164
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP
@@ -635,7 +635,7 @@ C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS:INTERNAL=1
 //Details about finding Git
 FIND_PACKAGE_MESSAGE_DETAILS_Git:INTERNAL=[/usr/bin/git][v2.54.0()]
 //Details about finding Python3
-FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python3][found components: Interpreter ][v3.14.5()]
+FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python][found components: Interpreter ][v3.14.5()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
@@ -646,10 +646,10 @@ _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/usr/local
 _Python3_Compiler_REASON_FAILURE:INTERNAL=
 //Development reason failure
 _Python3_Development_REASON_FAILURE:INTERNAL=
-_Python3_EXECUTABLE:INTERNAL=/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python3
+_Python3_EXECUTABLE:INTERNAL=/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python
 //Python3 Properties
 _Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;14;5;32;64;;;abi3;/usr/lib/python3.14;/home/taci/.espressif/python_env/idf6.0_py3.14_env/lib/python3.14;/home/taci/.espressif/python_env/idf6.0_py3.14_env/lib/python3.14/site-packages;/home/taci/.espressif/python_env/idf6.0_py3.14_env/lib/python3.14/site-packages
-_Python3_INTERPRETER_SIGNATURE:INTERNAL=f5de17cbdcf23b8010683eabc6ae98a9
+_Python3_INTERPRETER_SIGNATURE:INTERNAL=3ad736724e449c6450e68ef991169de7
 //NumPy reason failure
 _Python3_NumPy_REASON_FAILURE:INTERNAL=
 
