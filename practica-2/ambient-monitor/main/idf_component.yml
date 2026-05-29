@@ -1,0 +1,3 @@
+dependencies:
+  uncle-rus/dht: "*"
+  idf: ">=4.4"

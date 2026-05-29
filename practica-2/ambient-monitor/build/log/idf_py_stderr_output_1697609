@@ -1,0 +1,9 @@
+Command: cmake -G Ninja -B /home/taci/unlp/iot/practica-2/ambient-monitor/build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/taci/.espressif/python_env/idf6.0_py3.14_env/bin/python3 -DESP_PLATFORM=1 -DCCACHE_ENABLE=False /home/taci/unlp/iot/practica-2/ambient-monitor
+Configuration Report               
+ ───────────────────────────────── 
+   Parser Version: 1               
+   Verbosity: default              
+   Defaults policy: sdkconfig      
+   Status: Finished successfully   
+                                   
+ ───────────────────────────────── 
