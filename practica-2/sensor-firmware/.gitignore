@@ -1,0 +1,11 @@
+# CMake build artifacts
+build/
+
+# ESP-IDF specific
+managed_components/
+dependencies.lock
+sdkconfig.old
+
+# IDE files
+.vscode/
+.idea/
