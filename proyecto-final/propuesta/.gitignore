@@ -1,0 +1,29 @@
+# Ignore LaTeX build/output directory
+build/
+
+# Core LaTeX auxiliary files (if compiled in root)
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.pdf
+
+# Bibliography and other auxiliary files
+*.bbl
+*.blg
+*.bcf
+*.xml
+*.ilg
+*.ind
+*.idx
+*.lof
+*.lot
+*.toc
+*.run.xml
+*.synctex(busy)
+
+# IDE/Editor files
+.vscode/
+.antigravitycli/

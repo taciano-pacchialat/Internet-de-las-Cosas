@@ -1,0 +1,71 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Language and Encoding Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+
+% --- Page Geometry (Ajustado para ocupar exactamente una carilla) ---
+\usepackage[top=1.8cm, bottom=1.8cm, left=1.8cm, right=1.8cm]{geometry}
+
+% --- Typography and Layout ---
+\usepackage{setspace}
+\singlespacing
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{float}
+
+% --- Custom Header/Footer Setup ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\bfseries Universidad Nacional de La Plata (UNLP)}
+\fancyhead[R]{\small\bfseries Trabajo Integrador Final - IoT 2026}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Spacing adjustments for compact layout ---
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
+\begin{document}
+
+\begin{center}
+    {\bfseries\large PROPUESTA DE TRABAJO INTEGRADOR FINAL} \\[0.15cm]
+    {\bfseries\Large Sistema de Geofencing Dinámico para Ganado con Alertas Preventivas y Enlace LoRa} \\[0.15cm]
+    \textbf{Autores:} Cid De La Paz, Alejo --- Pacchialat, Taciano
+\end{center}
+
+\vspace{-0.2cm}
+
+\section{Introducción y Objetivos}
+Este trabajo describe el desarrollo de un sistema de seguimiento y delimitación geográfica virtual (geofencing) para ganado. El objetivo es determinar la ubicación del animal dentro de un perímetro definido por software.
+
+Los objetivos específicos del proyecto son:
+\begin{itemize}
+    \item Diseñar un dispositivo móvil (collar) con autonomía energética extendida.
+    \item Implementar un enlace de comunicación de largo alcance para entornos rurales.
+    \item Proveer una interfaz de monitoreo remoto y control bidireccional en tiempo real.
+\end{itemize}
+
+\section{Diseño y Arquitectura del Sistema}
+La solución consta de dos componentes de hardware principales y un backend de procesamiento en red:
+\begin{description}
+    \item[Nodo Collar:] Nodo móvil basado en el microcontrolador ESP32. Integra un receptor GPS para la adquisición de coordenadas, un transceptor de radio LoRa para la transmisión de datos y un buzzer para alertas locales.
+    \item[Gestión de Energía:] El firmware opera bajo una política de bajo consumo profundo. El microcontrolador permanece inactivo y se despierta mediante interrupciones temporizadas. En cada activación, enciende el GPS, adquiere la posición, transmite el paquete de datos por LoRa y retorna al estado de bajo consumo.
+    \item[Gateway Estancia:] Receptor ubicado en el establecimiento rural. Utiliza un ESP32 con transceptor LoRa para recibir los datos de los collares y actúa como puente, reenviándolos vía Wi-Fi hacia un broker MQTT centralizado.
+    \item[Procesamiento y Servidor:] El cálculo geométrico para validar si la coordenada está dentro o fuera del corral virtual se ejecuta en un servidor Node-RED. El collar funciona como un nodo pasivo de telemetría, reduciendo su consumo.
+    \item[Mapeo de Simulaciones:] Ante la falta de componentes de hardware específicos para pruebas iniciales, el firmware emulará la adquisición de coordenadas inyectando vectores de datos pregrabados. Los estímulos se representarán mediante indicadores acústicos del buzzer y señales visuales de diodos LED en las placas de desarrollo.
+\end{description}
+
+\section{Funcionalidades Operativas}
+El flujo de control del sistema incluye dos funcionalidades para la gestión remota y local:
+\begin{enumerate}
+    \item \textbf{Estímulo Auditivo Preventivo:} Si el servidor Node-RED detecta que el animal se aproxima al límite del perímetro, envía un comando de descarga (downlink) vía LoRa. Al recibir el comando, el ESP32 activa el buzzer para emitir una señal sonora que disuade al animal antes de cruzar la frontera virtual.
+    \item \textbf{Bot de Telegram Bidireccional:} Node-RED se conecta con la API de Telegram para enviar alertas inmediatas de fuga. El usuario también puede enviar comandos al bot para consultar de forma asincrónica la última posición conocida o el nivel de batería del collar.
+\end{enumerate}
+
+\end{document}
