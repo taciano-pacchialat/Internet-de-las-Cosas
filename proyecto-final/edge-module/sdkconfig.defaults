@@ -1,0 +1,12 @@
+# C++ exceptions para RadioLib
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
+CONFIG_COMPILER_CXX_EXCEPTIONS_EMG_POOL_SIZE=0
+
+# Log
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Deep sleep
+CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND=y
+
+# No hay Wi-Fi en el Edge Module, desactivar para ahorrar flash
+# CONFIG_ESP_WIFI_ENABLED is not set

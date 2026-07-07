@@ -1,0 +1,2 @@
+source /home/taci/unlp/iot/proyecto-final/edge-module/build/bootloader/gdbinit/symbols
+source /home/taci/unlp/iot/proyecto-final/edge-module/build/bootloader/gdbinit/connect

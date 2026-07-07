@@ -1,0 +1,19 @@
+Command: ninja all
+[1/9] Building CXX object esp-idf/main/CMakeFiles/__idf_main.dir/gateway-module.cpp.obj
+[2/9] Performing build step for 'bootloader'
+[1/1] cd /home/taci/unlp/iot/proyecto-final/gateway-module/build/bootloader && /home/taci/.espressif/tools/python/v6.0.1/venv/bin/python /home/taci/.espressif/v6.0.1/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 /home/taci/unlp/iot/proyecto-final/gateway-module/build/bootloader/bootloader.bin
+Bootloader binary size 0x6610 bytes. 0x9f0 bytes (9%) free.
+[3/9] Linking C static library esp-idf/main/libmain.a
+[4/9] No install step for 'bootloader'
+[5/9] Completed 'bootloader'
+[6/9] Generating esp-idf/esp_system/ld/sections.ld
+[7/9] Linking CXX executable gateway-module.elf
+[8/9] Generating binary image from built executable
+esptool v5.3.dev2
+Creating ESP32 image...
+Merged 4 ELF sections.
+Successfully created ESP32 image.
+Generated /home/taci/unlp/iot/proyecto-final/gateway-module/build/gateway-module.bin
+[9/9] cd /home/taci/unlp/iot/proyecto-final/gateway-module/build && /home/taci/.espressif/tools/python/v6.0.1/venv/bin/python /home/taci/.espressif/v6.0.1/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/taci/unlp/iot/proyecto-final/gateway-module/build/partition_table/partition-table.bin /home/taci/unlp/iot/proyecto-final/gateway-module/build/gateway-module.bin
+gateway-module.bin binary size 0xf9250 bytes. Smallest app partition is 0x100000 bytes. 0x6db0 bytes (3%) free.
+Warning: The smallest app partition is nearly full (3% free space left)!

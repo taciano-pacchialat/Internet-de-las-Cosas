@@ -1,0 +1,17 @@
+Command: ninja all
+info: /tmp/kconfgen_tmpof45m0k5:8 CONFIG_ESP32_SPIRAM_SUPPORT was replaced with CONFIG_SPIRAM
+Configuration Report                     
+ ─────────────────────────────────────── 
+   Parser Version: 1                     
+   Verbosity: default                    
+   Defaults policy: sdkconfig            
+   Status: Finished with notifications   
+                                         
+  Multiple Assignments                   
+   ────────────────────────              
+    Symbol SPIRAM:                       
+        y (user-set value)               
+        y (user-set value)               
+        -> using y                       
+   ────────────────────────              
+ ─────────────────────────────────────── 

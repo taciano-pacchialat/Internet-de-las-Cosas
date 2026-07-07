@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: geofence-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: geofence-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=geofence_db
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin123
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb
+    restart: unless-stopped
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: geofence-nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/data:/data
+    environment:
+      - TZ=America/Argentina/Buenos_Aires
+    depends_on:
+      - mosquitto
+      - influxdb
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: geofence-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    restart: unless-stopped

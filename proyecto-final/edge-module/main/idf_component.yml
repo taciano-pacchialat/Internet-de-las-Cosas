@@ -1,0 +1,6 @@
+dependencies:
+  jgromes/radiolib:
+    version: ">=7.1.2"
+    rules:
+      - if: "idf_version >=5.0"
+  espressif/cjson: "^1.7.19"
