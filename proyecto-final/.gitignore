@@ -1,0 +1,68 @@
+# ==============================================================================
+# ESP-IDF / C / C++ Build & Firmware Files
+# ==============================================================================
+build/
+sdkconfig.old
+*.bin
+*.elf
+*.map
+*.hex
+*.dis
+*.s
+*.o
+*.obj
+*.d
+bootloader/
+bootloader-complete
+app-flash_args
+bootloader-flash_args
+.ninja_deps
+.ninja_log
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# ESP-IDF Component Manager (downloaded external libraries)
+managed_components/
+
+# ==============================================================================
+# Backend Services (Docker, Node-RED, InfluxDB, Mosquitto, Grafana)
+# ==============================================================================
+# Ignore runtime data and logs, but keep directory structure (.gitkeep files)
+backend-services/mosquitto/data/*
+!backend-services/mosquitto/data/.gitkeep
+backend-services/mosquitto/log/*
+!backend-services/mosquitto/log/.gitkeep
+
+backend-services/influxdb/data/*
+!backend-services/influxdb/data/.gitkeep
+
+backend-services/nodered/data/*
+!backend-services/nodered/data/.gitkeep
+!backend-services/nodered/data/flows.json
+
+backend-services/grafana/data/*
+!backend-services/grafana/data/.gitkeep
+
+# ==============================================================================
+# Logs & Temporary Files
+# ==============================================================================
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+
+# ==============================================================================
+# IDE & Environment
+# ==============================================================================
+.vscode/
+.idea/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.gemini/
+.antigravitycli/
