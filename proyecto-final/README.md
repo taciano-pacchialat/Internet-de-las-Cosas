@@ -51,6 +51,40 @@ El sistema opera en un ciclo continuo de captura, transmisión, procesamiento y 
 
 ---
 
+## Conexiones Físicas de Hardware (Pinout)
+
+### 1. Edge Module (Collar Ganadero) — Placa: ESP32 Clásico
+
+**ESP32 -> Módulo LoRa SX1278 (433 MHz, Bus VSPI / SPI3_HOST)**
+- `Pin 18 (GPIO 18)` -> Pin `SCK` del Módulo LoRa SX1278
+- `Pin 19 (GPIO 19)` -> Pin `MISO` del Módulo LoRa SX1278
+- `Pin 23 (GPIO 23)` -> Pin `MOSI` del Módulo LoRa SX1278
+- `Pin 5 (GPIO 5)` -> Pin `NSS / CS` del Módulo LoRa SX1278
+- `Pin 14 (GPIO 14)` -> Pin `RST` del Módulo LoRa SX1278
+- `Pin 26 (GPIO 26)` -> Pin `DIO0` del Módulo LoRa SX1278
+
+**ESP32 -> Indicadores y Actuadores (RTC GPIOs)**
+- `Pin 25 (GPIO 25 / RTC_GPIO6)` -> Ánodo (+) del LED Verde (Estado: DENTRO del geofence)
+- `Pin 27 (GPIO 27 / RTC_GPIO17)` -> Ánodo (+) del LED Rojo / Alerta / Zumbador (Estado: FUERA del geofence)
+- `GND` -> Cátodo (-) / GND de LEDs y Módulo LoRa SX1278
+- `3V3` -> VCC (3.3V) del Módulo LoRa SX1278
+
+### 2. Gateway Module (Estación Base) — Placa: ESP32-CAM
+
+**ESP32-CAM -> Módulo LoRa SX1278 (433 MHz, Bus HSPI / SPI2_HOST)**
+- `Pin 14 (GPIO 14)` -> Pin `SCK` del Módulo LoRa SX1278
+- `Pin 12 (GPIO 12)` -> Pin `MISO` del Módulo LoRa SX1278
+- `Pin 13 (GPIO 13)` -> Pin `MOSI` del Módulo LoRa SX1278
+- `Pin 15 (GPIO 15)` -> Pin `NSS / CS` del Módulo LoRa SX1278
+- `Pin 16 (GPIO 16)` -> Pin `RST` del Módulo LoRa SX1278
+- `Pin 2 (GPIO 2)` -> Pin `DIO0` del Módulo LoRa SX1278 *(Interrupción RX `IRAM_ATTR`)*
+- `GND` -> GND del Módulo LoRa SX1278
+- `3V3` -> VCC (3.3V) del Módulo LoRa SX1278
+
+> **Nota técnica:** El Edge utiliza el bus **VSPI**, mientras que el Gateway utiliza el bus **HSPI** para evitar conflictos con los pines de PSRAM/Cámara en el ESP32-CAM. Además, `GPIO 2` en el ESP32-CAM es un pin de strapping que debe estar en `LOW` durante el arranque, lo cual es compatible con el estado por defecto del pin `DIO0` del SX1278.
+
+---
+
 ## Guía de Utilización
 
 ### Prerrequisitos
