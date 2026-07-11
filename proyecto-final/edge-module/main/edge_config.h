@@ -40,14 +40,14 @@
 #define RX_WAIT_TIMEOUT_MS  5000
 
 // =============================================================================
-// PINOUT SPI — ESP32 Clásico (VSPI)
+// PINOUT HSPI — ESP32-CAM (Collar / Edge Module)
 // =============================================================================
-#define LORA_SCK            18
-#define LORA_MISO           19
-#define LORA_MOSI           23
-#define LORA_CS              5
-#define LORA_RST            14
-#define LORA_DIO0           26
+#define LORA_SCK            14
+#define LORA_MISO           12
+#define LORA_MOSI           13
+#define LORA_CS             15
+#define LORA_RST            16
+#define LORA_DIO0            2
 
 // =============================================================================
 // PARÁMETROS RF LORA (coincidentes con Gateway)
@@ -59,9 +59,3 @@
 #define LORA_SYNC_WORD      0x12
 #define LORA_POWER          17      // dBm
 #define LORA_PREAMBLE       8
-
-// =============================================================================
-// PINES LEDS (RTC GPIOs necesarios para retención en Deep Sleep)
-// =============================================================================
-#define LED_INSIDE_PIN       25     // GPIO25 = RTC_GPIO6  → Verde (DENTRO)
-#define LED_OUTSIDE_PIN      27     // GPIO27 = RTC_GPIO17 → Rojo (FUERA)

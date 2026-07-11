@@ -1,6 +1,6 @@
 /*
- * GATEWAY MODULE — ESP32-CAM (Modularizado)
- * ==========================================
+ * GATEWAY MODULE — ESP32 Clásico (Modularizado)
+ * ==============================================
  * Sistema de Geofencing Ganadero con LoRa
  */
 
@@ -110,7 +110,7 @@ extern "C" void app_main(void) {
     // 3. Crear tarea FreeRTOS para procesamiento RX
     xTaskCreate(lora_rx_processing_task, "lora_rx_task", 8192, NULL, 5, &s_lora_rx_task_handle);
 
-    // 4. Configurar interrupción en el pin DIO0 (GPIO2)
+    // 4. Configurar interrupción en el pin DIO0 (GPIO26)
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_POSEDGE; // Flanco de subida cuando llega paquete LoRa
     io_conf.pin_bit_mask = (1ULL << LORA_DIO0);

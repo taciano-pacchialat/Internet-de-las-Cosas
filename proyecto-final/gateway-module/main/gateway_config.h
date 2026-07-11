@@ -42,21 +42,14 @@
 #define MQTT_SUBSCRIBE_WAIT_MS   3000   // Espera máxima para recibir mensajes retenidos
 
 // =============================================================================
-// PINOUT HSPI — ESP32-CAM (Evitando conflictos con PSRAM en VSPI)
+// PINOUT VSPI — ESP32 Clásico (Gateway Module)
 // =============================================================================
-/*
- * ADVERTENCIA GPIO2 (LORA_DIO0):
- *   GPIO2 debe estar LOW durante el boot para que el ESP32 arranque
- *   correctamente desde flash. El SX1278 mantiene DIO0 LOW por defecto
- *   cuando no hay paquete, lo cual es seguro. Se maneja explícitamente
- *   en la secuencia de inicialización y en el wakeup por ext0.
- */
-#define LORA_SCK     14
-#define LORA_MISO    12
-#define LORA_MOSI    13
-#define LORA_CS      15
-#define LORA_RST     16
-#define LORA_DIO0     2
+#define LORA_SCK     18
+#define LORA_MISO    19
+#define LORA_MOSI    23
+#define LORA_CS       5
+#define LORA_RST     14
+#define LORA_DIO0    26
 
 // =============================================================================
 // PARÁMETROS RF LORA (coincidentes con Edge Module)

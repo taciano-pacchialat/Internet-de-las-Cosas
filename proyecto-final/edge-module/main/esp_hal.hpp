@@ -11,7 +11,7 @@
 #include "edge_config.h"
 
 // =============================================================================
-// HAL ESP-IDF para RadioLib (VSPI / SPI3_HOST para ESP32 clásico)
+// HAL ESP-IDF para RadioLib (HSPI / SPI2_HOST para ESP32-CAM)
 // =============================================================================
 class EspHal : public RadioLibHal {
 public:
@@ -69,7 +69,7 @@ public:
         bus_cfg.quadhd_io_num = -1;
         bus_cfg.max_transfer_sz = 256;
 
-        esp_err_t ret = spi_bus_initialize(SPI3_HOST, &bus_cfg, SPI_DMA_CH_AUTO);
+        esp_err_t ret = spi_bus_initialize(SPI2_HOST, &bus_cfg, SPI_DMA_CH_AUTO);
         if (ret != ESP_OK) {
             ESP_LOGE("EspHal", "SPI bus init failed: %s", esp_err_to_name(ret));
         }
@@ -92,7 +92,7 @@ public:
             spi_bus_remove_device(_spiHandle);
             _spiHandle = nullptr;
         }
-        spi_bus_free(SPI3_HOST);
+        spi_bus_free(SPI2_HOST);
     }
 
     void spiAddDevice(int csPin) {
@@ -102,7 +102,7 @@ public:
         dev_cfg.spics_io_num = csPin;
         dev_cfg.queue_size = 1;
 
-        esp_err_t ret = spi_bus_add_device(SPI3_HOST, &dev_cfg, &_spiHandle);
+        esp_err_t ret = spi_bus_add_device(SPI2_HOST, &dev_cfg, &_spiHandle);
         if (ret != ESP_OK) {
             ESP_LOGE("EspHal", "SPI add device failed: %s", esp_err_to_name(ret));
         }
