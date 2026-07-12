@@ -7,6 +7,180 @@
         "info": "Recibe heartbeats del gateway y los almacena en InfluxDB"
     },
     {
+        "id": "flow_tab_telegram",
+        "type": "tab",
+        "label": "Bot Telegram (Placeholder)",
+        "disabled": true,
+        "info": "INSTRUCCIONES PARA ACTIVAR EL BOT DE TELEGRAM:\n\n1. Instalar el nodo: npm install node-red-contrib-telegrambot\n   (o desde la paleta de Node-RED: Manage Palette → Install)\n\n2. Crear un bot en Telegram hablando con @BotFather.\n   Usar /newbot y obtener el TOKEN.\n\n3. Reemplazar TODAS las ocurrencias de 'TU_TOKEN_AQUI'\n   en la configuración del nodo Telegram Receiver y Sender.\n\n4. Habilitar este flujo (click derecho → Enable).\n\n5. El bot responderá al comando /posicion con la última\n   coordenada almacenada en InfluxDB."
+    },
+    {
+        "id": "flow_tab_gps_sim",
+        "type": "tab",
+        "label": "Dashboard — GPS Simulado",
+        "disabled": false,
+        "info": "Dashboard para inyectar coordenadas GPS simuladas y publicarlas por MQTT con retain"
+    },
+    {
+        "id": "mqtt_broker_config",
+        "type": "mqtt-broker",
+        "name": "Mosquitto Local",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "nodered-geofence",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "influx_config",
+        "type": "influxdb",
+        "hostname": "influxdb",
+        "port": "8086",
+        "protocol": "http",
+        "database": "geofence_db",
+        "name": "InfluxDB Geofence",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://influxdb:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "ui_tab_geofence",
+        "type": "ui_tab",
+        "name": "Geofence Control",
+        "icon": "dashboard",
+        "order": 1
+    },
+    {
+        "id": "ui_group_gps",
+        "type": "ui_group",
+        "name": "GPS Simulado",
+        "tab": "ui_tab_geofence",
+        "order": 1,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "ui_fence_group",
+        "type": "ui_group",
+        "name": "Geofence Limits",
+        "tab": "ui_tab_geofence",
+        "order": 2,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "3a8462147e0aff84",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
         "id": "mqtt_in_heartbeat",
         "type": "mqtt in",
         "z": "flow_tab_mqtt_influx",
@@ -44,6 +218,20 @@
         ]
     },
     {
+        "id": "debug_heartbeat",
+        "type": "debug",
+        "z": "flow_tab_mqtt_influx",
+        "name": "Debug Heartbeat",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "x": 620,
+        "y": 160,
+        "wires": []
+    },
+    {
         "id": "influx_write",
         "type": "influxdb out",
         "z": "flow_tab_mqtt_influx",
@@ -60,64 +248,6 @@
         "x": 620,
         "y": 100,
         "wires": []
-    },
-    {
-        "id": "debug_heartbeat",
-        "type": "debug",
-        "z": "flow_tab_mqtt_influx",
-        "name": "Debug Heartbeat",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "x": 620,
-        "y": 160,
-        "wires": []
-    },
-    {
-        "id": "mqtt_broker_config",
-        "type": "mqtt-broker",
-        "name": "Mosquitto Local",
-        "broker": "mosquitto",
-        "port": "1883",
-        "clientid": "nodered-geofence",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": "4",
-        "keepalive": "60",
-        "cleansession": true,
-        "autoUnsubscribe": true,
-        "birthTopic": "",
-        "closeTopic": "",
-        "willTopic": "",
-        "birthQos": "0",
-        "closeQos": "0",
-        "willQos": "0",
-        "birthPayload": "",
-        "closePayload": "",
-        "willPayload": ""
-    },
-    {
-        "id": "influx_config",
-        "type": "influxdb",
-        "hostname": "influxdb",
-        "port": "8086",
-        "protocol": "http",
-        "database": "geofence_db",
-        "name": "InfluxDB Geofence",
-        "usetls": false,
-        "tls": "",
-        "influxdbVersion": "1.x",
-        "url": "http://influxdb:8086",
-        "rejectUnauthorized": true
-    },
-    {
-        "id": "flow_tab_telegram",
-        "type": "tab",
-        "label": "Bot Telegram (Placeholder)",
-        "disabled": true,
-        "info": "INSTRUCCIONES PARA ACTIVAR EL BOT DE TELEGRAM:\n\n1. Instalar el nodo: npm install node-red-contrib-telegrambot\n   (o desde la paleta de Node-RED: Manage Palette → Install)\n\n2. Crear un bot en Telegram hablando con @BotFather.\n   Usar /newbot y obtener el TOKEN.\n\n3. Reemplazar TODAS las ocurrencias de 'TU_TOKEN_AQUI'\n   en la configuración del nodo Telegram Receiver y Sender.\n\n4. Habilitar este flujo (click derecho → Enable).\n\n5. El bot responderá al comando /posicion con la última\n   coordenada almacenada en InfluxDB."
     },
     {
         "id": "telegram_receiver",
@@ -164,104 +294,6 @@
         "x": 340,
         "y": 320,
         "wires": []
-    },
-    {
-        "id": "flow_tab_gps_sim",
-        "type": "tab",
-        "label": "Dashboard — GPS Simulado",
-        "disabled": false,
-        "info": "Dashboard para inyectar coordenadas GPS simuladas y publicarlas por MQTT con retain"
-    },
-    {
-        "id": "ui_group_gps",
-        "type": "ui_group",
-        "name": "GPS Simulado",
-        "tab": "ui_tab_geofence",
-        "order": 1,
-        "disp": true,
-        "width": "12",
-        "collapse": false
-    },
-    {
-        "id": "ui_tab_geofence",
-        "type": "ui_tab",
-        "name": "Geofence Control",
-        "icon": "dashboard",
-        "order": 1
-    },
-    {
-        "id": "ui_lat_input",
-        "type": "ui_text_input",
-        "z": "flow_tab_gps_sim",
-        "name": "Latitud",
-        "label": "Latitud (ej: -34.9205)",
-        "tooltip": "Ingrese la latitud simulada",
-        "group": "ui_group_gps",
-        "order": 1,
-        "width": "6",
-        "height": "1",
-        "passthru": false,
-        "mode": "number",
-        "delay": 0,
-        "topic": "lat",
-        "sendOnBlur": true,
-        "x": 130,
-        "y": 100,
-        "wires": [
-            [
-                "gps_combiner"
-            ]
-        ]
-    },
-    {
-        "id": "ui_lon_input",
-        "type": "ui_text_input",
-        "z": "flow_tab_gps_sim",
-        "name": "Longitud",
-        "label": "Longitud (ej: -57.9536)",
-        "tooltip": "Ingrese la longitud simulada",
-        "group": "ui_group_gps",
-        "order": 2,
-        "width": "6",
-        "height": "1",
-        "passthru": false,
-        "mode": "number",
-        "delay": 0,
-        "topic": "lon",
-        "sendOnBlur": true,
-        "x": 130,
-        "y": 170,
-        "wires": [
-            [
-                "gps_combiner"
-            ]
-        ]
-    },
-    {
-        "id": "ui_send_btn",
-        "type": "ui_button",
-        "z": "flow_tab_gps_sim",
-        "name": "Enviar GPS",
-        "group": "ui_group_gps",
-        "order": 3,
-        "width": "6",
-        "height": "1",
-        "passthru": false,
-        "label": "📡 Publicar Coordenada Simulada",
-        "tooltip": "Publica lat/lon en MQTT con retain",
-        "color": "",
-        "bgcolor": "#2E7D32",
-        "icon": "fa-map-marker",
-        "payload": "send",
-        "payloadType": "str",
-        "topic": "",
-        "x": 170,
-        "y": 240,
-        "wires": [
-            [
-                "gps_combiner"
-            ]
-        ]
     },
     {
         "id": "gps_combiner",
@@ -312,14 +344,80 @@
         "wires": []
     },
     {
-        "id": "ui_fence_group",
-        "type": "ui_group",
-        "name": "Geofence Limits",
-        "tab": "ui_tab_geofence",
+        "id": "fence_combiner",
+        "type": "function",
+        "z": "flow_tab_gps_sim",
+        "name": "Combinar Límites Geofence",
+        "func": "var min_lat = flow.get('fence_min_lat') || -34.9250;\nvar max_lat = flow.get('fence_max_lat') || -34.9150;\nvar min_lon = flow.get('fence_min_lon') || -57.9600;\nvar max_lon = flow.get('fence_max_lon') || -57.9450;\nif (msg.topic === 'min_lat') { flow.set('fence_min_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lat') { flow.set('fence_max_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'min_lon') { flow.set('fence_min_lon', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lon') { flow.set('fence_max_lon', parseFloat(msg.payload)); return null; }\nmin_lat = flow.get('fence_min_lat') || -34.9250;\nmax_lat = flow.get('fence_max_lat') || -34.9150;\nmin_lon = flow.get('fence_min_lon') || -57.9600;\nmax_lon = flow.get('fence_max_lon') || -57.9450;\nmsg.payload = JSON.stringify({ min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon, timestamp: new Date().toISOString() });\nmsg.retain = true;\nnode.status({fill:'blue', shape:'dot', text:'Fence actualizado'});\nreturn msg;",
+        "outputs": 1,
+        "x": 440,
+        "y": 480,
+        "wires": [
+            [
+                "mqtt_out_fence"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_fence",
+        "type": "mqtt out",
+        "z": "flow_tab_gps_sim",
+        "name": "Publicar Geofence Limits (retain)",
+        "topic": "geofence/fence_update",
+        "qos": "1",
+        "retain": "true",
+        "broker": "mqtt_broker_config",
+        "x": 720,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "ui_lat_input",
+        "type": "ui_text_input",
+        "z": "flow_tab_gps_sim",
+        "name": "Latitud",
+        "label": "Latitud (ej: -34.9205)",
+        "tooltip": "Ingrese la latitud simulada",
+        "group": "ui_group_gps",
+        "order": 1,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "mode": "number",
+        "delay": 0,
+        "topic": "lat",
+        "sendOnBlur": true,
+        "x": 130,
+        "y": 100,
+        "wires": [
+            [
+                "gps_combiner"
+            ]
+        ]
+    },
+    {
+        "id": "ui_lon_input",
+        "type": "ui_text_input",
+        "z": "flow_tab_gps_sim",
+        "name": "Longitud",
+        "label": "Longitud (ej: -57.9536)",
+        "tooltip": "Ingrese la longitud simulada",
+        "group": "ui_group_gps",
         "order": 2,
-        "disp": true,
-        "width": "12",
-        "collapse": false
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "mode": "number",
+        "delay": 0,
+        "topic": "lon",
+        "sendOnBlur": true,
+        "x": 130,
+        "y": 170,
+        "wires": [
+            [
+                "gps_combiner"
+            ]
+        ]
     },
     {
         "id": "ui_fence_min_lat",
@@ -414,6 +512,32 @@
         ]
     },
     {
+        "id": "ui_send_btn",
+        "type": "ui_button",
+        "z": "flow_tab_gps_sim",
+        "name": "Enviar GPS",
+        "group": "ui_group_gps",
+        "order": 3,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "📡 Publicar Coordenada Simulada",
+        "tooltip": "Publica lat/lon en MQTT con retain",
+        "color": "",
+        "bgcolor": "#2E7D32",
+        "icon": "fa-map-marker",
+        "payload": "send",
+        "payloadType": "str",
+        "topic": "",
+        "x": 170,
+        "y": 240,
+        "wires": [
+            [
+                "gps_combiner"
+            ]
+        ]
+    },
+    {
         "id": "ui_fence_btn",
         "type": "ui_button",
         "z": "flow_tab_gps_sim",
@@ -438,33 +562,5 @@
                 "fence_combiner"
             ]
         ]
-    },
-    {
-        "id": "fence_combiner",
-        "type": "function",
-        "z": "flow_tab_gps_sim",
-        "name": "Combinar Límites Geofence",
-        "func": "var min_lat = flow.get('fence_min_lat') || -34.9250;\nvar max_lat = flow.get('fence_max_lat') || -34.9150;\nvar min_lon = flow.get('fence_min_lon') || -57.9600;\nvar max_lon = flow.get('fence_max_lon') || -57.9450;\nif (msg.topic === 'min_lat') { flow.set('fence_min_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lat') { flow.set('fence_max_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'min_lon') { flow.set('fence_min_lon', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lon') { flow.set('fence_max_lon', parseFloat(msg.payload)); return null; }\nmin_lat = flow.get('fence_min_lat') || -34.9250;\nmax_lat = flow.get('fence_max_lat') || -34.9150;\nmin_lon = flow.get('fence_min_lon') || -57.9600;\nmax_lon = flow.get('fence_max_lon') || -57.9450;\nmsg.payload = JSON.stringify({ min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon, timestamp: new Date().toISOString() });\nmsg.retain = true;\nnode.status({fill:'blue', shape:'dot', text:'Fence actualizado'});\nreturn msg;",
-        "outputs": 1,
-        "x": 440,
-        "y": 480,
-        "wires": [
-            [
-                "mqtt_out_fence"
-            ]
-        ]
-    },
-    {
-        "id": "mqtt_out_fence",
-        "type": "mqtt out",
-        "z": "flow_tab_gps_sim",
-        "name": "Publicar Geofence Limits (retain)",
-        "topic": "geofence/fence_update",
-        "qos": "1",
-        "retain": "true",
-        "broker": "mqtt_broker_config",
-        "x": 720,
-        "y": 480,
-        "wires": []
     }
 ]

@@ -9,6 +9,16 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.7.19~2
+  espressif/mdns:
+    component_hash: e81ca7a7f53ea34e78274df054da692c272e1315572876b237b1748e267c013b
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.11.3
   espressif/mqtt:
     component_hash: ffdad5659706b4dc14bc63f8eb73ef765efa015bf7e9adf71c813d52a2dc9342
     dependencies:
@@ -23,6 +33,16 @@ dependencies:
     source:
       type: idf
     version: 6.0.1
+  jackhuang021/esp32-wifi-manager:
+    component_hash: bc92759b8f4a0372ace80eae7310e9eb4b8c52102c554915dc8f6bfd078858b4
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.2'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.0.3
   jgromes/radiolib:
     component_hash: 024269f750d7eb181d07bd57ccec5e5e4e276dbb262d681a6501c8e2244e80f0
     dependencies:
@@ -35,8 +55,10 @@ dependencies:
     version: 7.7.1
 direct_dependencies:
 - espressif/cjson
+- espressif/mdns
 - espressif/mqtt
+- jackhuang021/esp32-wifi-manager
 - jgromes/radiolib
-manifest_hash: 931d02bcb7f82b035a809ec4785914989d4a5ba6feae74f4c4f9adecd3e47884
+manifest_hash: d2933600e8883d6b5700239e384edae895c96510f3551a665f22c0acc81ba66c
 target: esp32
 version: 3.0.0

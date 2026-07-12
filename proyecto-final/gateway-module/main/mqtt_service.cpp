@@ -1,21 +1,51 @@
 #include "mqtt_service.h"
 #include <cstring>
+#include <cstdio>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "mqtt_client.h"
 #include "gateway_config.h"
+#include "mdns.h"
 
-static const char* TAG = "MQTT";
+static const char* TAG = "MQTT_SVC";
 
 static esp_mqtt_client_handle_t mqtt_client = nullptr;
-static bool mqtt_connected = false;
+static volatile bool mqtt_connected = false;
+static char s_dynamic_mqtt_uri[128] = {0};
 
 // Buffers para datos recibidos de MQTT (downlink para el edge)
 static char downlink_gps_buffer[256] = {0};
 static char downlink_fence_buffer[256] = {0};
-static bool has_new_gps = false;
-static bool has_new_fence = false;
+static volatile bool has_new_gps = false;
+static volatile bool has_new_fence = false;
+
+/*
+ * =============================================================================
+ * RESOLUCIÓN mDNS DINÁMICA DEL BROKER MQTT (Alternativa de Respaldo)
+ * =============================================================================
+ * Para evitar hardcodeo de IPs en entornos de red cambiantes, consultamos
+ * mediante mdns_query_a() al servicio local por el hostname MDNS_TARGET_HOST
+ * ("iotbroker"). Si se obtiene un registro A dentro de los 2000 ms, armamos
+ * dinámicamente la URI mqtt://<IP_RESUELTA>:1883.
+ * Si el lookup expira o falla, recurrimos como fallback a MQTT_BROKER_URI
+ * ("mqtt://iotbroker.local:1883").
+ * =============================================================================
+ */
+static const char* resolve_mqtt_uri(void) {
+    esp_ip4_addr_t addr;
+    ESP_LOGI(TAG, "Consultando mDNS A record para host '%s' (timeout 2000 ms)...", MDNS_TARGET_HOST);
+    esp_err_t err = mdns_query_a(MDNS_TARGET_HOST, 2000, &addr);
+    if (err == ESP_OK) {
+        snprintf(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri),
+                 "mqtt://" IPSTR ":1883", IP2STR(&addr));
+        ESP_LOGI(TAG, "mDNS resuelto exitosamente: %s -> %s", MDNS_TARGET_HOST, s_dynamic_mqtt_uri);
+        return s_dynamic_mqtt_uri;
+    }
+    ESP_LOGW(TAG, "mDNS lookup para '%s' no resolvió IP directa (%s). Usando fallback URI: %s",
+             MDNS_TARGET_HOST, esp_err_to_name(err), MQTT_BROKER_URI);
+    return MQTT_BROKER_URI;
+}
 
 static void mqtt_event_handler(void* arg, esp_event_base_t base,
                                int32_t event_id, void* event_data) {
@@ -23,14 +53,14 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
 
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
-            ESP_LOGI(TAG, "MQTT conectado");
+            ESP_LOGI(TAG, "MQTT conectado al broker exitosamente");
             mqtt_connected = true;
             esp_mqtt_client_subscribe(mqtt_client, MQTT_TOPIC_SIM_GPS, 1);
             esp_mqtt_client_subscribe(mqtt_client, MQTT_TOPIC_FENCE_UPDATE, 1);
             break;
 
         case MQTT_EVENT_DATA:
-            ESP_LOGI(TAG, "MQTT datos recibidos en: %.*s", event->topic_len, event->topic);
+            ESP_LOGI(TAG, "MQTT datos recibidos en topico: %.*s", event->topic_len, event->topic);
 
             if (strncmp(event->topic, MQTT_TOPIC_SIM_GPS, event->topic_len) == 0) {
                 int copy_len = event->data_len < (int)sizeof(downlink_gps_buffer) - 1
@@ -51,7 +81,7 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
             break;
 
         case MQTT_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "MQTT desconectado");
+            ESP_LOGW(TAG, "MQTT desconectado del broker");
             mqtt_connected = false;
             break;
 
@@ -60,17 +90,31 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
     }
 }
 
-void mqtt_init_and_publish(const char* heartbeat_payload) {
+void mqtt_service_init_async(void) {
+    if (mqtt_client != nullptr) {
+        ESP_LOGI(TAG, "Cliente MQTT ya inicializado");
+        return;
+    }
+
+    const char* target_uri = resolve_mqtt_uri();
+
     esp_mqtt_client_config_t mqtt_cfg = {};
-    mqtt_cfg.broker.address.uri = MQTT_BROKER_URI;
+    mqtt_cfg.broker.address.uri = target_uri;
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(mqtt_client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID,
                                    mqtt_event_handler, NULL);
     esp_mqtt_client_start(mqtt_client);
+    ESP_LOGI(TAG, "Cliente MQTT arrancado en segundo plano hacia: %s", target_uri);
+}
+
+void mqtt_init_and_publish(const char* heartbeat_payload) {
+    if (mqtt_client == nullptr) {
+        mqtt_service_init_async();
+    }
 
     int wait = 0;
-    while (!mqtt_connected && wait < 5000) {
+    while (!mqtt_connected && wait < 3000) {
         vTaskDelay(pdMS_TO_TICKS(100));
         wait += 100;
     }
@@ -79,19 +123,12 @@ void mqtt_init_and_publish(const char* heartbeat_payload) {
         esp_mqtt_client_publish(mqtt_client, MQTT_TOPIC_HEARTBEAT,
                                 heartbeat_payload, 0, 1, 0);
         ESP_LOGI(TAG, "Heartbeat publicado: %s", heartbeat_payload);
-
-        ESP_LOGI(TAG, "Esperando actualizaciones MQTT (%d ms)...", MQTT_SUBSCRIBE_WAIT_MS);
-        vTaskDelay(pdMS_TO_TICKS(MQTT_SUBSCRIBE_WAIT_MS));
     } else {
-        ESP_LOGW(TAG, "No se pudo conectar a MQTT, omitiendo publicación");
+        ESP_LOGW(TAG, "No se pudo publicar (broker MQTT no conectado aún)");
     }
-
-    esp_mqtt_client_stop(mqtt_client);
-    esp_mqtt_client_destroy(mqtt_client);
-    mqtt_client = nullptr;
-    mqtt_connected = false;
 }
 
+bool mqtt_is_ready(void) { return mqtt_connected; }
 bool mqtt_has_new_gps(void) { return has_new_gps; }
 bool mqtt_has_new_fence(void) { return has_new_fence; }
 const char* mqtt_get_downlink_gps(void) { return downlink_gps_buffer; }

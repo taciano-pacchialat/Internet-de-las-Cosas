@@ -20,6 +20,7 @@ public:
           _sck(sck), _miso(miso), _mosi(mosi), _spiHandle(nullptr) {}
 
     void pinMode(uint32_t pin, uint32_t mode) override {
+        if (pin == RADIOLIB_NC || pin >= GPIO_NUM_MAX) return;
         gpio_config_t io_conf = {};
         io_conf.pin_bit_mask = (1ULL << pin);
         io_conf.mode = (mode == OUTPUT) ? GPIO_MODE_OUTPUT : GPIO_MODE_INPUT;
@@ -30,10 +31,12 @@ public:
     }
 
     void digitalWrite(uint32_t pin, uint32_t value) override {
+        if (pin == RADIOLIB_NC || pin >= GPIO_NUM_MAX) return;
         gpio_set_level((gpio_num_t)pin, value);
     }
 
     uint32_t digitalRead(uint32_t pin) override {
+        if (pin == RADIOLIB_NC || pin >= GPIO_NUM_MAX) return 0;
         return gpio_get_level((gpio_num_t)pin);
     }
 

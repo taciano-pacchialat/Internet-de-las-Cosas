@@ -24,7 +24,7 @@ bool lora_init(void) {
     hal->spiBegin();
     hal->spiAddDevice(LORA_CS);
 
-    ESP_LOGI(TAG, "Inicializando SX1278...");
+    ESP_LOGI(TAG, "Inicializando SX1278 en HSPI...");
     int state = lora->begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                             LORA_SYNC_WORD, LORA_POWER, LORA_PREAMBLE);
     if (state != RADIOLIB_ERR_NONE) {

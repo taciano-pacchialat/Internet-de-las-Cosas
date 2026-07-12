@@ -35,7 +35,9 @@
 #define WIFI_CONNECT_TIMEOUT_MS  10000  // 10 segundos máximo para conectar
 #define MAX_WIFI_RETRY           3
 
-#define MQTT_BROKER_URI          "mqtt://192.168.1.100:1883"  // Cambiar a IP del server
+#define MQTT_BROKER_URI          "mqtt://iotbroker.local:1883"  // Resolución dinámica mDNS
+#define MDNS_HOSTNAME            "gateway-module"
+#define MDNS_TARGET_HOST         "iotbroker"
 #define MQTT_TOPIC_HEARTBEAT     "geofence/heartbeat"
 #define MQTT_TOPIC_SIM_GPS       "geofence/simulated_gps"
 #define MQTT_TOPIC_FENCE_UPDATE  "geofence/fence_update"

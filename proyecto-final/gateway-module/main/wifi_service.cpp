@@ -1,102 +1,78 @@
 #include "wifi_service.h"
 #include <cstring>
-#include "esp_wifi.h"
-#include "esp_event.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
+#include "freertos/task.h"
 #include "gateway_config.h"
+#include "wifi_manager.h"
+#include "mdns.h"
+#include "mqtt_service.h"
 
-static const char* TAG = "WIFI";
+static const char* TAG = "WIFI_MGR";
 
-static EventGroupHandle_t s_wifi_event_group = NULL;
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
+static volatile bool s_wifi_connected = false;
+static bool s_mdns_initialized = false;
 
-static int s_retry_num = 0;
-static esp_event_handler_instance_t s_instance_any_id = NULL;
-static esp_event_handler_instance_t s_instance_got_ip = NULL;
-
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                               int32_t event_id, void* event_data) {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < MAX_WIFI_RETRY) {
-            esp_wifi_connect();
-            s_retry_num++;
-            ESP_LOGI(TAG, "Reintento Wi-Fi #%d", s_retry_num);
-        } else {
-            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
-        }
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
-        ESP_LOGI(TAG, "IP obtenida: " IPSTR, IP2STR(&event->ip_info.ip));
-        s_retry_num = 0;
-        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-    }
+static void on_wifi_disconnected(void* param) {
+    ESP_LOGW(TAG, "Wi-Fi STA desconectado. Reintentando o esperando configuración en SoftAP...");
+    s_wifi_connected = false;
 }
 
-bool wifi_init_and_connect(void) {
-    s_wifi_event_group = xEventGroupCreate();
-    s_retry_num = 0;
+static void on_wifi_connected(void* param) {
+    ESP_LOGI(TAG, "=== Conexión Wi-Fi STA Exitosa (IP Obtenida) ===");
+    s_wifi_connected = true;
 
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_sta();
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, &s_instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, &s_instance_got_ip));
-
-    wifi_config_t wifi_config = {};
-    strncpy((char*)wifi_config.sta.ssid, WIFI_SSID, sizeof(wifi_config.sta.ssid) - 1);
-    strncpy((char*)wifi_config.sta.password, WIFI_PASS, sizeof(wifi_config.sta.password) - 1);
-    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "Esperando conexión Wi-Fi...");
-
-    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
-        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-        pdFALSE, pdFALSE,
-        pdMS_TO_TICKS(WIFI_CONNECT_TIMEOUT_MS));
-
-    bool connected = (bits & WIFI_CONNECTED_BIT) != 0;
-    if (!connected) {
-        ESP_LOGW(TAG, "Wi-Fi: conexión fallida o timeout. Limpiando recursos...");
-        wifi_disconnect_and_deinit();
+    // Inicializar servicio mDNS para resolución local
+    if (!s_mdns_initialized) {
+        esp_err_t err = mdns_init();
+        if (err == ESP_OK) {
+            mdns_hostname_set(MDNS_HOSTNAME);
+            mdns_instance_name_set("ESP32 LoRa Gateway Module");
+            ESP_LOGI(TAG, "Servicio mDNS inicializado. Hostname: %s.local", MDNS_HOSTNAME);
+            s_mdns_initialized = true;
+        } else {
+            ESP_LOGE(TAG, "Fallo al inicializar mDNS: %s", esp_err_to_name(err));
+        }
     }
-    return connected;
+
+    // Inicializar el cliente MQTT de forma asíncrona tras obtener red local
+    ESP_LOGI(TAG, "Iniciando cliente MQTT asíncrono...");
+    mqtt_service_init_async();
+}
+
+void wifi_service_init(void) {
+    ESP_LOGI(TAG, "Configurando e iniciando esp32-wifi-manager...");
+
+    // 1. Configuración del SoftAP para la demostración / provisión visual
+    strncpy((char*)wifi_settings.ap_ssid, "Gateway Network Setup", sizeof(wifi_settings.ap_ssid) - 1);
+    wifi_settings.ap_ssid[sizeof(wifi_settings.ap_ssid) - 1] = '\0';
+    wifi_settings.ap_pwd[0] = '\0'; // Sin contraseña (AP abierto) según requerimiento del Paso 2
+    wifi_settings.ap_ssid_hidden = 0;
+
+    // 2. Registrar callbacks de eventos Wi-Fi
+    wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &on_wifi_connected);
+    wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &on_wifi_disconnected);
+
+    // 3. Iniciar tarea y servidor web de esp32-wifi-manager
+    wifi_manager_start();
+
+    ESP_LOGI(TAG, "SoftAP levantado en SSID: 'Gateway Network Setup' (abierto). Servidor web listo en 10.10.0.1");
+}
+
+bool wifi_is_connected(void) {
+    return s_wifi_connected;
+}
+
+void wifi_wait_for_connection(uint32_t timeout_ms) {
+    uint32_t elapsed = 0;
+    while (!s_wifi_connected && elapsed < timeout_ms) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        elapsed += 100;
+    }
 }
 
 void wifi_disconnect_and_deinit(void) {
-    ESP_LOGI(TAG, "Limpiando descriptores de red y liberando heap (Smell #3)...");
-
-    if (s_instance_any_id) {
-        esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, s_instance_any_id);
-        s_instance_any_id = NULL;
-    }
-    if (s_instance_got_ip) {
-        esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, s_instance_got_ip);
-        s_instance_got_ip = NULL;
-    }
-
-    esp_wifi_disconnect();
-    esp_wifi_stop();
-    esp_wifi_deinit();
-    esp_event_loop_delete_default();
-
-    if (s_wifi_event_group) {
-        vEventGroupDelete(s_wifi_event_group);
-        s_wifi_event_group = NULL;
-    }
-    ESP_LOGI(TAG, "Wi-Fi desconectado y desinicializado sin fugas de memoria.");
+    ESP_LOGI(TAG, "Deteniendo wifi_manager...");
+    wifi_manager_destroy();
+    s_wifi_connected = false;
 }

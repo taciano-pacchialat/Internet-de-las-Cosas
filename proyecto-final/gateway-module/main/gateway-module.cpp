@@ -44,7 +44,7 @@ static void lora_rx_processing_task(void* arg) {
 
         ESP_LOGI(TAG, "Notificación ISR (DIO0) recibida. Leyendo paquete LoRa por SPI...");
         if (lora_receive(rx_buffer, sizeof(rx_buffer), &rssi, &snr)) {
-            if (wifi_init_and_connect()) {
+            if (wifi_is_connected()) {
                 char mqtt_payload[768];
                 snprintf(mqtt_payload, sizeof(mqtt_payload),
                     "{\"raw\":%s,\"rssi\":%.1f,\"snr\":%.1f}",
@@ -62,8 +62,8 @@ static void lora_rx_processing_task(void* arg) {
                     lora_send_downlink(downlink);
                     mqtt_reset_flags();
                 }
-
-                wifi_disconnect_and_deinit();
+            } else {
+                ESP_LOGW(TAG, "Wi-Fi no conectado (usa el portal 'Gateway Network Setup'). Paquete LoRa procesado pero no enviado a MQTT.");
             }
         }
 
@@ -100,6 +100,9 @@ extern "C" void app_main(void) {
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // 2. Inicializar Administrador Wi-Fi (esp32-wifi-manager + SoftAP abierto)
+    wifi_service_init();
 
     // 2. Inicializar LoRa
     if (!lora_init()) {

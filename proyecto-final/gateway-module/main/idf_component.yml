@@ -5,3 +5,5 @@ dependencies:
     - if: idf_version >=5.0
   espressif/cjson: ^1.7.19
   espressif/mqtt: '*'
+  jackhuang021/esp32-wifi-manager: ^0.0.3
+  espressif/mdns: '*'
