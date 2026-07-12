@@ -227,6 +227,9 @@
         "console": false,
         "tostatus": true,
         "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
         "x": 620,
         "y": 160,
         "wires": []

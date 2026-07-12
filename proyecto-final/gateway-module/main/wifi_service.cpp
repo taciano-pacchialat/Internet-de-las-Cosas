@@ -49,12 +49,12 @@ void wifi_service_init(void) {
     wifi_settings.ap_pwd[0] = '\0'; // Sin contraseña (AP abierto) según requerimiento del Paso 2
     wifi_settings.ap_ssid_hidden = 0;
 
-    // 2. Registrar callbacks de eventos Wi-Fi
+    // 2. Iniciar tarea y servidor web de esp32-wifi-manager (asigna memoria para callbacks)
+    wifi_manager_start();
+
+    // 3. Registrar callbacks de eventos Wi-Fi DESPUÉS de wifi_manager_start()
     wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &on_wifi_connected);
     wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &on_wifi_disconnected);
-
-    // 3. Iniciar tarea y servidor web de esp32-wifi-manager
-    wifi_manager_start();
 
     ESP_LOGI(TAG, "SoftAP levantado en SSID: 'Gateway Network Setup' (abierto). Servidor web listo en 10.10.0.1");
 }
