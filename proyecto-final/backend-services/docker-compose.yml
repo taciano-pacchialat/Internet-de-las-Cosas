@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: geofence-mosquitto
@@ -41,17 +40,14 @@ services:
       - influxdb
     restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: geofence-grafana
+  frontend-app:
+    build:
+      context: ./frontend-app
+      dockerfile: Dockerfile
+    container_name: geofence-frontend
     ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-    volumes:
-      - ./grafana/data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - "80:80"
     depends_on:
       - influxdb
     restart: unless-stopped
+

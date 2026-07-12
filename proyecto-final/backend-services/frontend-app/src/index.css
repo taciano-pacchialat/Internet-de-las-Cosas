@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --color-hud-bg: #0A0D14;
+  --color-hud-surface: #111622;
+  --color-hud-card: #151C2C;
+  --color-hud-border: #1E283D;
+  --color-hud-accent: #10B981;
+  --color-hud-alert: #EF4444;
+  --color-hud-warning: #F59E0B;
+  --color-hud-cyan: #06B6D4;
+
+  --font-sans: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --shadow-neon-green: 0 0 15px rgba(16, 185, 129, 0.35);
+  --shadow-neon-red: 0 0 20px rgba(239, 68, 68, 0.45);
+}
+
+body {
+  background-color: var(--color-hud-bg);
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom Tactical Leaflet Map Dark Styling */
+.leaflet-container {
+  background-color: #0b0f19 !important;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Radar Pulse Animations for Map Markers */
+@keyframes pulse-ring-red {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-ring-green {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.marker-pulse-red {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.45);
+  animation: pulse-ring-red 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.marker-pulse-green {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.35);
+  animation: pulse-ring-green 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
