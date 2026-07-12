@@ -50,6 +50,7 @@ bool lora_receive(char* buffer, size_t max_len, float* rssi, float* snr) {
 
 void lora_send_downlink(const char* data) {
     ESP_LOGI(TAG, "LoRa TX downlink: %s", data);
+    lora->standby();
     int state = lora->transmit(data);
     if (state != RADIOLIB_ERR_NONE) {
         ESP_LOGW(TAG, "LoRa TX falló, código: %d", state);

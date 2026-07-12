@@ -81,6 +81,7 @@ void lora_send_heartbeat(bool inside) {
 void lora_wait_for_downlink(void) {
     ESP_LOGI(TAG, "Esperando downlink LoRa (%d ms)...", RX_WAIT_TIMEOUT_MS);
 
+    lora->standby();
     int state = lora->startReceive();
     if (state != RADIOLIB_ERR_NONE) {
         ESP_LOGW(TAG, "startReceive falló: %d", state);
@@ -95,7 +96,7 @@ void lora_wait_for_downlink(void) {
             received = true;
             break;
         }
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     if (!received) {

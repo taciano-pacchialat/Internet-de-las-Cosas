@@ -44,6 +44,19 @@ static void lora_rx_processing_task(void* arg) {
 
         ESP_LOGI(TAG, "Notificación ISR (DIO0) recibida. Leyendo paquete LoRa por SPI...");
         if (lora_receive(rx_buffer, sizeof(rx_buffer), &rssi, &snr)) {
+            // Pequeño retardo de turnaround (20ms) para asegurar que el Edge ya entró en modo RX
+            vTaskDelay(pdMS_TO_TICKS(20));
+
+            char downlink[768];
+            snprintf(downlink, sizeof(downlink),
+                "{\"gps\":%s,\"fence\":%s}",
+                mqtt_has_new_gps() ? mqtt_get_downlink_gps() : "null",
+                mqtt_has_new_fence() ? mqtt_get_downlink_fence() : "null");
+
+            ESP_LOGI(TAG, "Enviando downlink LoRa al Edge: %s", downlink);
+            lora_send_downlink(downlink);
+            mqtt_reset_flags();
+
             if (wifi_is_connected()) {
                 char mqtt_payload[768];
                 snprintf(mqtt_payload, sizeof(mqtt_payload),
@@ -51,18 +64,8 @@ static void lora_rx_processing_task(void* arg) {
                     rx_buffer, rssi, snr);
 
                 mqtt_init_and_publish(mqtt_payload);
-
-                char downlink[768];
-                snprintf(downlink, sizeof(downlink),
-                    "{\"gps\":%s,\"fence\":%s}",
-                    mqtt_has_new_gps() ? mqtt_get_downlink_gps() : "null",
-                    mqtt_has_new_fence() ? mqtt_get_downlink_fence() : "null");
-
-                ESP_LOGI(TAG, "Enviando downlink LoRa al Edge: %s", downlink);
-                lora_send_downlink(downlink);
-                mqtt_reset_flags();
             } else {
-                ESP_LOGW(TAG, "Wi-Fi no conectado (usa el portal 'Gateway Network Setup'). Paquete LoRa procesado pero no enviado a MQTT.");
+                ESP_LOGW(TAG, "Wi-Fi no conectado. Paquete LoRa procesado y respondido con downlink, pero no enviado a MQTT.");
             }
         }
 
