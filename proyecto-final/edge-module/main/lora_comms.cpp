@@ -18,13 +18,34 @@ static Module* mod = nullptr;
 
 bool lora_init(void) {
     hal = new EspHal(LORA_SCK, LORA_MISO, LORA_MOSI);
-    mod = new Module(hal, LORA_CS, LORA_DIO0, LORA_RST, RADIOLIB_NC);
-    lora = new SX1278(mod);
 
     hal->spiBegin();
     hal->spiAddDevice(LORA_CS);
 
-    ESP_LOGI(TAG, "Inicializando SX1278 en HSPI...");
+    // --- DIAGNÓSTICO SPI ---
+    // Reset manual del módulo antes de leer
+    hal->pinMode(LORA_RST, OUTPUT);
+    hal->digitalWrite(LORA_RST, LOW);
+    hal->delay(10);
+    hal->digitalWrite(LORA_RST, HIGH);
+    hal->delay(10);
+
+    // Leer RegVersion (0x42) directamente — SX1278 debe responder 0x12
+    hal->pinMode(LORA_CS, OUTPUT);
+    hal->digitalWrite(LORA_CS, HIGH);
+    hal->delay(1);
+    uint8_t tx[2] = {0x42, 0x00};
+    uint8_t rx[2] = {0x00, 0x00};
+    hal->digitalWrite(LORA_CS, LOW);
+    hal->spiTransfer(tx, 2, rx);
+    hal->digitalWrite(LORA_CS, HIGH);
+    ESP_LOGI(TAG, "=== DIAG SPI: RegVersion(0x42) = 0x%02X (esperado 0x12) ===", rx[1]);
+    // --- FIN DIAGNÓSTICO ---
+
+    mod = new Module(hal, LORA_CS, LORA_DIO0, LORA_RST, RADIOLIB_NC);
+    lora = new SX1278(mod);
+
+    ESP_LOGI(TAG, "Inicializando SX1278 en VSPI...");
     int state = lora->begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
                             LORA_SYNC_WORD, LORA_POWER, LORA_PREAMBLE);
     if (state != RADIOLIB_ERR_NONE) {

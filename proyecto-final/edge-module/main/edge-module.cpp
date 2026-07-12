@@ -1,6 +1,6 @@
 /*
- * EDGE MODULE — ESP32-CAM (Collar Ganadero)
- * ==========================================
+ * EDGE MODULE — ESP32 DevKit V1 (Collar Ganadero)
+ * ==============================================
  * Sistema de Geofencing Ganadero con LoRa (Modularizado)
  */
 

@@ -40,14 +40,17 @@
 #define RX_WAIT_TIMEOUT_MS  5000
 
 // =============================================================================
-// PINOUT HSPI — ESP32-CAM (Collar / Edge Module)
+// PINOUT VSPI — ESP32 DevKit V1 (Collar / Edge Module)
+// GPIO18=SCK, GPIO19=MISO, GPIO23=MOSI (pines VSPI por defecto del ESP32)
+// GPIO22=CS, GPIO14=RST, GPIO4=DIO0
+// NOTA: Evitar GPIO0 (boot), GPIO2 (LED/boot), GPIO12 (boot-voltage), GPIO15 (boot), GPIO5 (boot pull-up)
 // =============================================================================
-#define LORA_SCK            14
-#define LORA_MISO           12
-#define LORA_MOSI           13
-#define LORA_CS             15
-#define LORA_RST            16
-#define LORA_DIO0            2
+#define LORA_SCK            18
+#define LORA_MISO           19
+#define LORA_MOSI           23
+#define LORA_CS             22
+#define LORA_RST            14
+#define LORA_DIO0            4
 
 // =============================================================================
 // PARÁMETROS RF LORA (coincidentes con Gateway)
