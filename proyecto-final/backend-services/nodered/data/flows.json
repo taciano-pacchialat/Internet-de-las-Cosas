@@ -2,7 +2,7 @@
     {
         "id": "flow_tab_mqtt_influx",
         "type": "tab",
-        "label": "MQTT → InfluxDB",
+        "label": "MQTT \u2192 InfluxDB",
         "disabled": false,
         "info": "Recibe heartbeats del gateway y los almacena en InfluxDB"
     },
@@ -11,12 +11,12 @@
         "type": "tab",
         "label": "Bot Telegram (Placeholder)",
         "disabled": true,
-        "info": "INSTRUCCIONES PARA ACTIVAR EL BOT DE TELEGRAM:\n\n1. Instalar el nodo: npm install node-red-contrib-telegrambot\n   (o desde la paleta de Node-RED: Manage Palette → Install)\n\n2. Crear un bot en Telegram hablando con @BotFather.\n   Usar /newbot y obtener el TOKEN.\n\n3. Reemplazar TODAS las ocurrencias de 'TU_TOKEN_AQUI'\n   en la configuración del nodo Telegram Receiver y Sender.\n\n4. Habilitar este flujo (click derecho → Enable).\n\n5. El bot responderá al comando /posicion con la última\n   coordenada almacenada en InfluxDB."
+        "info": "INSTRUCCIONES PARA ACTIVAR EL BOT DE TELEGRAM:\n\n1. Instalar el nodo: npm install node-red-contrib-telegrambot\n   (o desde la paleta de Node-RED: Manage Palette \u2192 Install)\n\n2. Crear un bot en Telegram hablando con @BotFather.\n   Usar /newbot y obtener el TOKEN.\n\n3. Reemplazar TODAS las ocurrencias de 'TU_TOKEN_AQUI'\n   en la configuraci\u00f3n del nodo Telegram Receiver y Sender.\n\n4. Habilitar este flujo (click derecho \u2192 Enable).\n\n5. El bot responder\u00e1 al comando /posicion con la \u00faltima\n   coordenada almacenada en InfluxDB."
     },
     {
         "id": "flow_tab_gps_sim",
         "type": "tab",
-        "label": "Dashboard — GPS Simulado",
+        "label": "Dashboard \u2014 GPS Simulado",
         "disabled": false,
         "info": "Dashboard para inyectar coordenadas GPS simuladas y publicarlas por MQTT con retain"
     },
@@ -227,6 +227,9 @@
         "console": false,
         "tostatus": true,
         "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
         "x": 620,
         "y": 160,
         "wires": []
@@ -253,7 +256,7 @@
         "id": "telegram_receiver",
         "type": "comment",
         "z": "flow_tab_telegram",
-        "name": "⚠️ CONFIGURAR: Nodo 'telegram receiver' — Token: TU_TOKEN_AQUI",
+        "name": "\u26a0\ufe0f CONFIGURAR: Nodo 'telegram receiver' \u2014 Token: TU_TOKEN_AQUI",
         "info": "Pasos:\n1. Instalar node-red-contrib-telegrambot\n2. Agregar nodo 'telegram receiver'\n3. En la config del bot, poner el token de @BotFather\n4. Conectar la salida al nodo function de abajo\n\nComando esperado: /posicion",
         "x": 340,
         "y": 80,
@@ -263,7 +266,7 @@
         "id": "telegram_query_func",
         "type": "function",
         "z": "flow_tab_telegram",
-        "name": "Consultar última posición (InfluxDB query)",
+        "name": "Consultar \u00faltima posici\u00f3n (InfluxDB query)",
         "func": "msg.query = 'SELECT last(\"latitude\"), last(\"longitude\"), \"fence_status\" FROM \"cattle_position\" GROUP BY \"device_id\"';\nreturn msg;",
         "outputs": 1,
         "x": 340,
@@ -277,7 +280,7 @@
         "type": "function",
         "z": "flow_tab_telegram",
         "name": "Formatear respuesta Telegram",
-        "func": "var results = msg.payload;\nvar text = '🐄 *Última posición del ganado:*\\n\\n';\nif (results && results.length > 0) {\n    results.forEach(function(r) {\n        text += '📍 Device: ' + (r.device_id || 'N/A') + '\\n';\n        text += '   Lat: ' + (r.last_latitude || 'N/A') + '\\n';\n        text += '   Lon: ' + (r.last_longitude || 'N/A') + '\\n';\n        text += '   Estado: ' + (r.fence_status || 'N/A') + '\\n\\n';\n    });\n} else {\n    text += 'No hay datos disponibles aún.';\n}\nmsg.payload = { chatId: msg.originalMessage.chat.id, type: 'message', content: text, options: { parse_mode: 'Markdown' } };\nreturn msg;",
+        "func": "var results = msg.payload;\nvar text = '\ud83d\udc04 *\u00daltima posici\u00f3n del ganado:*\\n\\n';\nif (results && results.length > 0) {\n    results.forEach(function(r) {\n        text += '\ud83d\udccd Device: ' + (r.device_id || 'N/A') + '\\n';\n        text += '   Lat: ' + (r.last_latitude || 'N/A') + '\\n';\n        text += '   Lon: ' + (r.last_longitude || 'N/A') + '\\n';\n        text += '   Estado: ' + (r.fence_status || 'N/A') + '\\n\\n';\n    });\n} else {\n    text += 'No hay datos disponibles a\u00fan.';\n}\nmsg.payload = { chatId: msg.originalMessage.chat.id, type: 'message', content: text, options: { parse_mode: 'Markdown' } };\nreturn msg;",
         "outputs": 1,
         "x": 340,
         "y": 240,
@@ -289,8 +292,8 @@
         "id": "telegram_sender_comment",
         "type": "comment",
         "z": "flow_tab_telegram",
-        "name": "⚠️ CONFIGURAR: Nodo 'telegram sender' — Token: TU_TOKEN_AQUI",
-        "info": "Agregar nodo 'telegram sender' aquí.\nConfigurar con el mismo bot token de arriba.\nConectar la salida del nodo 'Formatear respuesta' a este sender.",
+        "name": "\u26a0\ufe0f CONFIGURAR: Nodo 'telegram sender' \u2014 Token: TU_TOKEN_AQUI",
+        "info": "Agregar nodo 'telegram sender' aqu\u00ed.\nConfigurar con el mismo bot token de arriba.\nConectar la salida del nodo 'Formatear respuesta' a este sender.",
         "x": 340,
         "y": 320,
         "wires": []
@@ -347,7 +350,7 @@
         "id": "fence_combiner",
         "type": "function",
         "z": "flow_tab_gps_sim",
-        "name": "Combinar Límites Geofence",
+        "name": "Combinar L\u00edmites Geofence",
         "func": "var min_lat = flow.get('fence_min_lat') || -34.9250;\nvar max_lat = flow.get('fence_max_lat') || -34.9150;\nvar min_lon = flow.get('fence_min_lon') || -57.9600;\nvar max_lon = flow.get('fence_max_lon') || -57.9450;\nif (msg.topic === 'min_lat') { flow.set('fence_min_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lat') { flow.set('fence_max_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'min_lon') { flow.set('fence_min_lon', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lon') { flow.set('fence_max_lon', parseFloat(msg.payload)); return null; }\nmin_lat = flow.get('fence_min_lat') || -34.9250;\nmax_lat = flow.get('fence_max_lat') || -34.9150;\nmin_lon = flow.get('fence_min_lon') || -57.9600;\nmax_lon = flow.get('fence_max_lon') || -57.9450;\nmsg.payload = JSON.stringify({ min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon, timestamp: new Date().toISOString() });\nmsg.retain = true;\nnode.status({fill:'blue', shape:'dot', text:'Fence actualizado'});\nreturn msg;",
         "outputs": 1,
         "x": 440,
@@ -521,7 +524,7 @@
         "width": "6",
         "height": "1",
         "passthru": false,
-        "label": "📡 Publicar Coordenada Simulada",
+        "label": "\ud83d\udce1 Publicar Coordenada Simulada",
         "tooltip": "Publica lat/lon en MQTT con retain",
         "color": "",
         "bgcolor": "#2E7D32",
@@ -547,8 +550,8 @@
         "width": "6",
         "height": "1",
         "passthru": false,
-        "label": "🔲 Actualizar Límites Geofence",
-        "tooltip": "Publica los nuevos límites del geofence por MQTT",
+        "label": "\ud83d\udd32 Actualizar L\u00edmites Geofence",
+        "tooltip": "Publica los nuevos l\u00edmites del geofence por MQTT",
         "color": "",
         "bgcolor": "#1565C0",
         "icon": "fa-square-o",
@@ -562,5 +565,83 @@
                 "fence_combiner"
             ]
         ]
+    },
+    {
+        "id": "flow_tab_geofence_api",
+        "type": "tab",
+        "label": "API Geofence Per\u00edmetro",
+        "disabled": false,
+        "info": "API HTTP POST /api/update-fence desde Dashboard UI hacia MQTT geofence/config_update"
+    },
+    {
+        "id": "http_in_update_fence",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "POST /api/update-fence",
+        "url": "/api/update-fence",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 140,
+        "wires": [
+            [
+                "func_format_fence_mqtt"
+            ]
+        ]
+    },
+    {
+        "id": "func_format_fence_mqtt",
+        "type": "function",
+        "z": "flow_tab_geofence_api",
+        "name": "Validar & Empaquetar ESP32 Payload",
+        "func": "var body = msg.payload || {};\nvar vertices = body.vertices || [];\nif (!Array.isArray(vertices) || vertices.length < 3) {\n    msg.payload = { status: \"error\", message: \"Pol\u00edgono inv\u00e1lido: m\u00ednimo 3 v\u00e9rtices requeridos.\" };\n    msg.statusCode = 400;\n    return [null, msg];\n}\nvar esp32Payload = {\n    command: \"UPDATE_GEOFENCE\",\n    vertex_count: vertices.length,\n    vertices: vertices,\n    timestamp: Math.floor(Date.now() / 1000)\n};\nvar mqttMsg = {\n    topic: \"geofence/config_update\",\n    payload: JSON.stringify(esp32Payload),\n    qos: 1,\n    retain: true\n};\nmsg.statusCode = 200;\nmsg.payload = {\n    status: \"success\",\n    message: \"Geofence actualizado con \" + vertices.length + \" v\u00e9rtices y publicado por MQTT.\",\n    topic: \"geofence/config_update\",\n    timestamp: esp32Payload.timestamp\n};\nreturn [mqttMsg, msg];",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 140,
+        "wires": [
+            [
+                "mqtt_out_config_update"
+            ],
+            [
+                "http_resp_update_fence"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_config_update",
+        "type": "mqtt out",
+        "z": "flow_tab_geofence_api",
+        "name": "MQTT geofence/config_update",
+        "topic": "geofence/config_update",
+        "qos": "1",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker_config",
+        "x": 790,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "http_resp_update_fence",
+        "type": "http response",
+        "z": "flow_tab_geofence_api",
+        "name": "HTTP 200 OK / 400 Error",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 770,
+        "y": 180,
+        "wires": []
     }
 ]
