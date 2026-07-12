@@ -57,6 +57,7 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
             mqtt_connected = true;
             esp_mqtt_client_subscribe(mqtt_client, MQTT_TOPIC_SIM_GPS, 1);
             esp_mqtt_client_subscribe(mqtt_client, MQTT_TOPIC_FENCE_UPDATE, 1);
+            esp_mqtt_client_subscribe(mqtt_client, "geofence/config_update", 1);
             break;
 
         case MQTT_EVENT_DATA:
@@ -70,13 +71,14 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
                 has_new_gps = true;
                 ESP_LOGI(TAG, "GPS simulado recibido: %s", downlink_gps_buffer);
             }
-            else if (strncmp(event->topic, MQTT_TOPIC_FENCE_UPDATE, event->topic_len) == 0) {
+            else if (strncmp(event->topic, MQTT_TOPIC_FENCE_UPDATE, event->topic_len) == 0 ||
+                     strncmp(event->topic, "geofence/config_update", event->topic_len) == 0) {
                 int copy_len = event->data_len < (int)sizeof(downlink_fence_buffer) - 1
                              ? event->data_len : (int)sizeof(downlink_fence_buffer) - 1;
                 memcpy(downlink_fence_buffer, event->data, copy_len);
                 downlink_fence_buffer[copy_len] = '\0';
                 has_new_fence = true;
-                ESP_LOGI(TAG, "Fence update recibido: %s", downlink_fence_buffer);
+                ESP_LOGI(TAG, "Fence update recibido en Gateway: %s", downlink_fence_buffer);
             }
             break;
 

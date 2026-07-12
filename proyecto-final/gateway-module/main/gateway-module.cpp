@@ -52,16 +52,15 @@ static void lora_rx_processing_task(void* arg) {
 
                 mqtt_init_and_publish(mqtt_payload);
 
-                if (mqtt_has_new_gps() || mqtt_has_new_fence()) {
-                    char downlink[768];
-                    snprintf(downlink, sizeof(downlink),
-                        "{\"gps\":%s,\"fence\":%s}",
-                        mqtt_has_new_gps() ? mqtt_get_downlink_gps() : "null",
-                        mqtt_has_new_fence() ? mqtt_get_downlink_fence() : "null");
+                char downlink[768];
+                snprintf(downlink, sizeof(downlink),
+                    "{\"gps\":%s,\"fence\":%s}",
+                    mqtt_has_new_gps() ? mqtt_get_downlink_gps() : "null",
+                    mqtt_has_new_fence() ? mqtt_get_downlink_fence() : "null");
 
-                    lora_send_downlink(downlink);
-                    mqtt_reset_flags();
-                }
+                ESP_LOGI(TAG, "Enviando downlink LoRa al Edge: %s", downlink);
+                lora_send_downlink(downlink);
+                mqtt_reset_flags();
             } else {
                 ESP_LOGW(TAG, "Wi-Fi no conectado (usa el portal 'Gateway Network Setup'). Paquete LoRa procesado pero no enviado a MQTT.");
             }
