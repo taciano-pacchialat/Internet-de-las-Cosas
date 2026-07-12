@@ -38,25 +38,16 @@ static void enter_deep_sleep(void) {
 // CONSOLA UART — Navegación GPS con teclas de flecha
 // =============================================================================
 
-// Dibuja/actualiza las 4 líneas del panel GPS en la terminal
+// Imprime una línea de estado que se sobreescribe con \r
 static void _gps_redraw(double lat, double lon, double step, int secs) {
     double mn_lat, mx_lat, mn_lon, mx_lon;
     rtc_state_get_fence(&mn_lat, &mx_lat, &mn_lon, &mx_lon);
     bool inside = (lat >= mn_lat && lat <= mx_lat &&
                    lon >= mn_lon && lon <= mx_lon);
-
-    // Subir 4 líneas para sobrescribir el panel anterior
-    printf("\033[4A");
-    printf("\033[2K\r  Lat: %+.6f   Lon: %+.6f   %s\n",
+    printf("\r  Lat:%+.4f Lon:%+.4f | %s | paso:%.4f | %ds | flechas=mover F=rapido ENTER=ok Q=cancel   ",
            lat, lon,
-           inside ? "[ DENTRO ]" : "[ FUERA  ]");
-    printf("\033[2K\r  Paso: %.4f grados (~%.0f m)  %s\n",
-           step, step * 111000.0,
-           (step > STEP_NORMAL) ? "  [MODO RAPIDO - F para normal]"
-                                : "  [F = modo rapido]");
-    printf("\033[2K\r  Controles: flechas=mover  ENTER=confirmar  Q=cancelar\n");
-    printf("\033[2K\r  Tiempo restante: %2d seg ...                          \n",
-           secs);
+           inside ? "DENTRO" : "FUERA ",
+           step, secs);
     fflush(stdout);
 }
 
@@ -75,16 +66,12 @@ static void console_update_position(void) {
     double step = STEP_NORMAL;
     bool confirm = false;
 
-    // Cabecera fija (no se sobrescribe)
+    // Cabecera fija
     printf("\n\r============================================\n");
     printf("\r   CONTROL DE POSICION GPS — Wake #%lu\n",
            (unsigned long)rtc_state_get_wake_count());
     printf("\r============================================\n");
-    // 4 líneas que serán sobreescritas por _gps_redraw
-    printf("  (iniciando...)\n");
-    printf("\n");
-    printf("\n");
-    printf("\n");
+    printf("\r  (usa las flechas para mover, ENTER para confirmar)\n");
     fflush(stdout);
 
     int64_t start_us  = esp_timer_get_time();
