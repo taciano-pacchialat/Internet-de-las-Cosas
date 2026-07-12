@@ -10,10 +10,10 @@ static const char* TAG = "RTC_STATE";
 RTC_DATA_ATTR static double current_lat = -34.9205;
 RTC_DATA_ATTR static double current_lon = -57.9536;
 
-RTC_DATA_ATTR static double fence_min_lat = -34.9250;
-RTC_DATA_ATTR static double fence_max_lat = -34.9150;
-RTC_DATA_ATTR static double fence_min_lon = -57.9600;
-RTC_DATA_ATTR static double fence_max_lon = -57.9450;
+RTC_DATA_ATTR static double fence_min_lat = -34.9225;
+RTC_DATA_ATTR static double fence_max_lat = -34.9185;
+RTC_DATA_ATTR static double fence_min_lon = -57.9565;
+RTC_DATA_ATTR static double fence_max_lon = -57.9505;
 
 RTC_DATA_ATTR static uint32_t wake_count = 0;
 RTC_DATA_ATTR static bool last_inside = true;

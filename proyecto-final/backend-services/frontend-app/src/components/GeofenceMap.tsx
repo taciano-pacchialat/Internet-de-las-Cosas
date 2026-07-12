@@ -1,279 +1,223 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Polygon, Marker, useMap } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Polygon, Marker, Rectangle, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import '@geoman-io/leaflet-geoman-free';
-import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
-import {
-  Crosshair,
-  MapPin,
-  Edit3,
-  Save,
-  RotateCcw,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  X
-} from 'lucide-react';
-import { sendGeofenceUpdate, type FenceVertex } from '../services/fenceService';
+import { Crosshair, MapPin, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 interface GeofenceMapProps {
   latitude: number;
   longitude: number;
   fenceStatus: 'INSIDE' | 'OUTSIDE' | 'UNKNOWN';
   deviceId: string;
+  polygonCoords: [number, number][];
+  selectedVertexIndex: number | null;
+  onSelectVertex: (index: number | null) => void;
+  onCoordsChange: (coords: [number, number][]) => void;
+  showBoundingBox: boolean;
+  onToggleBoundingBox: () => void;
 }
 
-// Reference polygon for the farm pasture perimeter
-const INITIAL_GEOFENCE: [number, number][] = [
-  [-34.9185, -57.9565],
-  [-34.9185, -57.9505],
-  [-34.9225, -57.9505],
-  [-34.9225, -57.9565]
-];
-
-// Helper component to recenter map automatically when point changes
+// Helper para recentrar suavemente el mapa
 const MapRecenter: React.FC<{ lat: number; lng: number }> = ({ lat, lng }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng], map.getZoom());
+    map.setView([lat, lng], map.getZoom(), { animate: true });
   }, [lat, lng, map]);
   return null;
 };
 
-// Child component to attach Geoman editing to the polygon
-const GeomanEditor: React.FC<{
-  isEditing: boolean;
-  polygonRef: React.RefObject<L.Polygon | null>;
-  onVerticesChange: (coords: [number, number][]) => void;
-}> = ({ isEditing, polygonRef, onVerticesChange }) => {
-  const map = useMap();
+// Editor de polígonos que soporta movimiento por arrastre Y movimiento por teclado
+const LivePolygonEditor: React.FC<{
+  coords: [number, number][];
+  selectedVertexIndex: number | null;
+  isOutside: boolean;
+  onSelectVertex: (index: number | null) => void;
+  onCoordsChange: (newCoords: [number, number][]) => void;
+}> = ({ coords, selectedVertexIndex, isOutside, onSelectVertex, onCoordsChange }) => {
+  const polygonRef = useRef<L.Polygon | null>(null);
+  const coordsRef = useRef<[number, number][]>(coords);
 
   useEffect(() => {
-    const polygon = polygonRef.current;
-    if (!polygon) return;
+    coordsRef.current = coords;
+  }, [coords]);
 
-    if (isEditing) {
-      // Enable Geoman editing on this polygon
-      (polygon as any).pm.enable({
-        allowSelfIntersection: false,
-        snappable: true
-      });
+  const createVertexIcon = (idx: number, isSelected: boolean) =>
+    L.divIcon({
+      className: 'custom-vertex-handle',
+      html: `
+        <div style="
+          width: ${isSelected ? '36px' : '30px'};
+          height: ${isSelected ? '36px' : '30px'};
+          border-radius: 50%;
+          background-color: ${isSelected ? '#06B6D4' : '#F59E0B'};
+          border: ${isSelected ? '3px solid #FFFFFF' : '2px solid #FFFFFF'};
+          box-shadow: ${
+            isSelected
+              ? '0 0 18px rgba(6, 182, 212, 1), inset 0 0 4px #fff'
+              : '0 0 10px rgba(245, 158, 11, 0.9)'
+          };
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: monospace;
+          font-weight: bold;
+          font-size: ${isSelected ? '14px' : '12px'};
+          color: #000000;
+          cursor: grab;
+          user-select: none;
+          transition: all 0.15s ease;
+        ">V${idx + 1}</div>
+      `,
+      iconSize: [isSelected ? 36 : 30, isSelected ? 36 : 30],
+      iconAnchor: [isSelected ? 18 : 15, isSelected ? 18 : 15]
+    });
 
-      const handleEdit = () => {
-        const latlngs = polygon.getLatLngs();
-        const firstRing = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
-        const updatedCoords: [number, number][] = (firstRing as L.LatLng[]).map((pt: L.LatLng) => [
-          pt.lat,
-          pt.lng
-        ]);
-        onVerticesChange(updatedCoords);
-      };
+  return (
+    <>
+      {/* Polígono del Corral Geofence */}
+      <Polygon
+        ref={polygonRef}
+        positions={coords}
+        pathOptions={{
+          color: selectedVertexIndex !== null ? '#F59E0B' : isOutside ? '#EF4444' : '#10B981',
+          weight: 3,
+          dashArray: 'none',
+          fillColor: selectedVertexIndex !== null ? '#F59E0B' : isOutside ? '#EF4444' : '#10B981',
+          fillOpacity: 0.25
+        }}
+      />
 
-      polygon.on('pm:edit', handleEdit);
-      polygon.on('pm:vertexadded', handleEdit);
-      polygon.on('pm:vertexremoved', handleEdit);
-      polygon.on('pm:markerdragend', handleEdit);
-
-      return () => {
-        polygon.off('pm:edit', handleEdit);
-        polygon.off('pm:vertexadded', handleEdit);
-        polygon.off('pm:vertexremoved', handleEdit);
-        polygon.off('pm:markerdragend', handleEdit);
-        (polygon as any).pm.disable();
-      };
-    } else {
-      (polygon as any).pm?.disable();
-    }
-  }, [isEditing, polygonRef, onVerticesChange, map]);
-
-  return null;
+      {/* MARCADORES DE CADA VÉRTICE (Clickeables para seleccionar y Arrastrables) */}
+      {coords.map((coord, idx) => {
+        const isSelected = selectedVertexIndex === idx;
+        return (
+          <Marker
+            key={`vertex-handle-${idx}`}
+            position={coord}
+            draggable={true}
+            icon={createVertexIcon(idx, isSelected)}
+            eventHandlers={{
+              click: () => {
+                onSelectVertex(isSelected ? null : idx);
+              },
+              dragstart: () => {
+                onSelectVertex(idx);
+              },
+              drag: (e) => {
+                const latlng = e.target.getLatLng();
+                coordsRef.current[idx] = [latlng.lat, latlng.lng];
+                if (polygonRef.current) {
+                  polygonRef.current.setLatLngs(coordsRef.current);
+                }
+              },
+              dragend: (e) => {
+                const latlng = e.target.getLatLng();
+                coordsRef.current[idx] = [latlng.lat, latlng.lng];
+                onCoordsChange([...coordsRef.current]);
+              }
+            }}
+          />
+        );
+      })}
+    </>
+  );
 };
 
 export const GeofenceMap: React.FC<GeofenceMapProps> = ({
   latitude,
   longitude,
   fenceStatus,
-  deviceId
+  deviceId,
+  polygonCoords,
+  selectedVertexIndex,
+  onSelectVertex,
+  onCoordsChange,
+  showBoundingBox,
+  onToggleBoundingBox
 }) => {
-  const [polygonCoords, setPolygonCoords] = useState<[number, number][]>(INITIAL_GEOFENCE);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [toast, setToast] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
-
-  const polygonRef = useRef<L.Polygon | null>(null);
   const isOutside = fenceStatus === 'OUTSIDE';
 
-  // Auto dismiss toast after 6 seconds
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
+  // Cálculo del Bounding Box hardware del collar
+  const minLat = Math.min(...polygonCoords.map((c) => c[0]));
+  const maxLat = Math.max(...polygonCoords.map((c) => c[0]));
+  const minLon = Math.min(...polygonCoords.map((c) => c[1]));
+  const maxLon = Math.max(...polygonCoords.map((c) => c[1]));
 
-  // Handle Save Perimeter
-  const handleSaveFence = async () => {
-    setIsSaving(true);
-    setToast(null);
+  const boundingBoxBounds: [[number, number], [number, number]] = [
+    [minLat, minLon],
+    [maxLat, maxLon]
+  ];
 
-    try {
-      const vertices: FenceVertex[] = polygonCoords.map((coord) => ({
-        lat: coord[0],
-        lon: coord[1]
-      }));
+  const isInsideHardwareBox =
+    latitude >= minLat && latitude <= maxLat && longitude >= minLon && longitude <= maxLon;
 
-      const response = await sendGeofenceUpdate(vertices);
-
-      setIsEditing(false);
-      setToast({
-        type: 'success',
-        message:
-          response.message ||
-          `Perímetro (${vertices.length} vértices) guardado y publicado vía MQTT.`
-      });
-    } catch (error: any) {
-      setToast({
-        type: 'error',
-        message: error.message || 'Error al guardar el nuevo perímetro en Node-RED.'
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Handle Reset Perimeter
-  const handleResetFence = () => {
-    setPolygonCoords(INITIAL_GEOFENCE);
-    setIsEditing(false);
-  };
-
-  // Custom DivIcon with glowing radar pulse
   const cattleIcon = L.divIcon({
     className: 'custom-cattle-marker',
     html: `
-      <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;">
+      <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
         <div class="${isOutside ? 'marker-pulse-red' : 'marker-pulse-green'}"></div>
-        <div style="width: 14px; height: 14px; border-radius: 50%; background-color: ${
+        <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${
           isOutside ? '#EF4444' : '#10B981'
-        }; border: 2px solid #ffffff; box-shadow: 0 0 10px ${
+        }; border: 2.5px solid #ffffff; box-shadow: 0 0 14px ${
           isOutside ? '#EF4444' : '#10B981'
         }; z-index: 10;"></div>
       </div>
     `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18]
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
   });
 
   return (
-    <div className="relative w-full h-[450px] lg:h-[510px] rounded-xl overflow-hidden border border-hud-border bg-hud-surface shadow-lg flex flex-col">
-      {/* Toast Notification HUD Banner */}
-      {toast && (
-        <div
-          className={`absolute top-16 right-4 z-[500] max-w-md p-4 rounded-lg border shadow-xl backdrop-blur-md flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-            toast.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/60 text-emerald-300 shadow-neon-green'
-              : 'bg-red-950/90 border-red-500/60 text-red-300 shadow-neon-red'
-          }`}
-        >
-          {toast.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1 text-xs font-mono">
-            <strong className="block uppercase tracking-wider font-bold mb-1">
-              {toast.type === 'success' ? 'PERÍMETRO ACTUALIZADO (200 OK)' : 'ERROR EN LA OPERACIÓN'}
-            </strong>
-            <p className="text-gray-200">{toast.message}</p>
-          </div>
-          <button
-            onClick={() => setToast(null)}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Top Controls Toolbar for Polygon Editing */}
-      <div className="absolute top-4 right-4 z-[400] flex items-center gap-2 bg-hud-surface/95 backdrop-blur-md border border-hud-border rounded-lg p-1.5 shadow-xl">
-        {/* Toggle Edit Button */}
+    <div className="relative w-full h-[580px] lg:h-[660px] xl:h-[700px] rounded-xl overflow-hidden border border-hud-border bg-hud-surface shadow-2xl flex flex-col">
+      {/* BARRA SUPERIOR TÁCTICA DEL MAPA (z-1000 SIEMPRE ACCESIBLE) */}
+      <div className="absolute top-4 right-4 z-[1000] flex items-center gap-2 bg-hud-surface/95 backdrop-blur-md border border-hud-border rounded-lg p-2 shadow-2xl">
         <button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={onToggleBoundingBox}
           className={`px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-1.5 border ${
-            isEditing
-              ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-md'
+            showBoundingBox
+              ? 'bg-cyan-500/20 border-cyan-500/80 text-cyan-300 shadow-md'
               : 'bg-hud-card hover:bg-hud-border border-hud-border text-gray-300 hover:text-white'
           }`}
+          title="Muestra la caja límite hardware (min/max lat/lon) que evalúa el ESP32 Edge"
         >
-          <Edit3 className="w-3.5 h-3.5" />
-          {isEditing ? 'EDITANDO VÉRTICES' : 'MODIFICAR CORRAL'}
+          {showBoundingBox ? 'CAJA HW: ACTIVA' : 'VER CAJA HW'}
         </button>
-
-        {/* Reset Button (only shown when editing) */}
-        {isEditing && (
-          <button
-            onClick={handleResetFence}
-            disabled={isSaving}
-            className="px-2.5 py-1.5 rounded text-xs font-mono border border-hud-border bg-hud-card hover:bg-hud-border text-gray-300 hover:text-white transition-colors flex items-center gap-1"
-            title="Restablecer perímetro inicial"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            RESET
-          </button>
-        )}
-
-        {/* Save Button (Industrial Highlighted) */}
-        {isEditing && (
-          <button
-            onClick={handleSaveFence}
-            disabled={isSaving}
-            className="px-3.5 py-1.5 rounded text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black shadow-neon-green disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
-                ENVIANDO...
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5 text-black" />
-                GUARDAR NUEVO PERÍMETRO
-              </>
-            )}
-          </button>
-        )}
       </div>
 
-      {/* HUD Tactical Overlay header inside the map */}
-      <div className="absolute top-4 left-4 z-[400] bg-hud-surface/90 backdrop-blur-md border border-hud-border rounded-lg p-3 shadow-xl max-w-xs pointer-events-none">
-        <div className="flex items-center gap-2 mb-1">
-          <Crosshair className="w-4 h-4 text-cyan-400" />
-          <span className="text-xs font-mono font-bold tracking-wider text-gray-200">
-            RADAR PERIMETER VIEW
-          </span>
+      {/* PANEL RADAR HUD IZQUIERDO (z-900) */}
+      <div className="absolute top-4 left-4 z-[900] bg-hud-surface/90 backdrop-blur-md border border-hud-border rounded-lg p-3 shadow-xl max-w-xs pointer-events-none">
+        <div className="flex items-center justify-between gap-3 mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <Crosshair className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-mono font-bold tracking-wider text-gray-200">
+              RADAR PERIMETRAL
+            </span>
+          </div>
+          {isInsideHardwareBox ? (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <ShieldCheck className="w-3 h-3" /> HW: INSIDE
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/40">
+              <ShieldAlert className="w-3 h-3" /> HW: OUTSIDE
+            </span>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-gray-300 mt-1">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-gray-300">
           <div>
-            <span className="text-gray-400 block text-[10px]">LATITUDE</span>
+            <span className="text-gray-400 block text-[10px]">LATITUD NODO</span>
             <span className="text-white font-semibold">{latitude.toFixed(6)}</span>
           </div>
           <div>
-            <span className="text-gray-400 block text-[10px]">LONGITUDE</span>
+            <span className="text-gray-400 block text-[10px]">LONGITUD NODO</span>
             <span className="text-white font-semibold">{longitude.toFixed(6)}</span>
           </div>
         </div>
-        {isEditing && (
-          <div className="mt-2 pt-1.5 border-t border-hud-border text-[10px] font-mono text-amber-400">
-            ARRASTRA LOS VÉRTICES DEL CORRAL EN EL MAPA PARA RECONFIGURAR
-          </div>
-        )}
+        <div className="mt-2 pt-1.5 border-t border-hud-border text-[10px] font-mono text-cyan-300 leading-tight">
+          SELECCIONA UN VÉRTICE EN LA LISTA LATERAL PARA DESPLAZARLO CON TECLADO O BOTONES
+        </div>
       </div>
 
-      {/* Map Container */}
+      {/* CONTENEDOR DEL MAPA LEAFLET */}
       <div className="flex-1 w-full">
         <MapContainer
           center={[latitude, longitude]}
@@ -283,52 +227,51 @@ export const GeofenceMap: React.FC<GeofenceMapProps> = ({
         >
           <MapRecenter lat={latitude} lng={longitude} />
 
-          {/* CartoDB Dark Matter Industrial Map Tiles */}
+          {/* Teselas CartoDB Dark Matter */}
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Geofence Perimeter Polygon */}
-          <Polygon
-            ref={polygonRef}
-            positions={polygonCoords}
-            pathOptions={{
-              color: isEditing
-                ? '#F59E0B'
-                : isOutside
-                ? '#EF4444'
-                : '#10B981',
-              weight: isEditing ? 3 : 2,
-              dashArray: isEditing ? 'none' : '6, 6',
-              fillColor: isEditing
-                ? '#F59E0B'
-                : isOutside
-                ? '#EF4444'
-                : '#10B981',
-              fillOpacity: isEditing ? 0.25 : 0.12
-            }}
+          {/* Caja Hardware Bounding Box */}
+          {showBoundingBox && (
+            <Rectangle
+              bounds={boundingBoxBounds}
+              pathOptions={{
+                color: '#06B6D4',
+                weight: 1.5,
+                dashArray: '4, 4',
+                fill: false
+              }}
+            />
+          )}
+
+          {/* Polígono y marcadores interactivos V1, V2... */}
+          <LivePolygonEditor
+            coords={polygonCoords}
+            selectedVertexIndex={selectedVertexIndex}
+            isOutside={isOutside}
+            onSelectVertex={onSelectVertex}
+            onCoordsChange={onCoordsChange}
           />
 
-          {/* Attach Geoman Polygon Editor */}
-          <GeomanEditor
-            isEditing={isEditing}
-            polygonRef={polygonRef}
-            onVerticesChange={(updated) => setPolygonCoords(updated)}
-          />
-
-          {/* Cattle Marker */}
+          {/* Marcador del Ganado (Collar IoT) */}
           <Marker position={[latitude, longitude]} icon={cattleIcon} />
         </MapContainer>
       </div>
 
-      {/* Map Footer HUD readout */}
-      <div className="absolute bottom-4 right-4 z-[400] bg-hud-surface/90 backdrop-blur-md border border-hud-border rounded-lg px-3 py-1.5 flex items-center gap-2 pointer-events-none">
-        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-        <span className="text-[11px] font-mono text-gray-300">
-          TRACKED NODE: <strong className="text-white">{deviceId}</strong> | VÉRTICES:{' '}
-          <strong className="text-cyan-400">{polygonCoords.length}</strong>
-        </span>
+      {/* PIE DE MAPA TÁCTICO HUD (z-900) */}
+      <div className="absolute bottom-4 right-4 z-[900] bg-hud-surface/90 backdrop-blur-md border border-hud-border rounded-lg px-3 py-1.5 flex items-center gap-3 pointer-events-none text-[11px] font-mono text-gray-300">
+        <div className="flex items-center gap-1.5">
+          <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+          <span>
+            DISPOSITIVO: <strong className="text-white">{deviceId}</strong>
+          </span>
+        </div>
+        <span className="text-hud-border">|</span>
+        <div>
+          VÉRTICES: <strong className="text-amber-400">{polygonCoords.length}</strong>
+        </div>
       </div>
     </div>
   );

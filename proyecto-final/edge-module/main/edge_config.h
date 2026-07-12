@@ -37,7 +37,7 @@
 #define SLEEP_DURATION_US   (30ULL * 1000000ULL)
 
 // Tiempo de espera RX tras transmitir heartbeat (ms)
-#define RX_WAIT_TIMEOUT_MS  5000
+#define RX_WAIT_TIMEOUT_MS  8000
 
 // =============================================================================
 // PINOUT VSPI — ESP32 DevKit V1 (Collar / Edge Module)

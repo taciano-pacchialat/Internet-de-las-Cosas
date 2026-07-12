@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "mqtt_client.h"
+#include "cJSON.h"
 #include "gateway_config.h"
 #include "mdns.h"
 
@@ -15,8 +16,8 @@ static volatile bool mqtt_connected = false;
 static char s_dynamic_mqtt_uri[128] = {0};
 
 // Buffers para datos recibidos de MQTT (downlink para el edge)
-static char downlink_gps_buffer[256] = {0};
-static char downlink_fence_buffer[256] = {0};
+static char downlink_gps_buffer[512] = {0};
+static char downlink_fence_buffer[512] = {0};
 static volatile bool has_new_gps = false;
 static volatile bool has_new_fence = false;
 
@@ -73,12 +74,34 @@ static void mqtt_event_handler(void* arg, esp_event_base_t base,
             }
             else if (strncmp(event->topic, MQTT_TOPIC_FENCE_UPDATE, event->topic_len) == 0 ||
                      strncmp(event->topic, "geofence/config_update", event->topic_len) == 0) {
-                int copy_len = event->data_len < (int)sizeof(downlink_fence_buffer) - 1
-                             ? event->data_len : (int)sizeof(downlink_fence_buffer) - 1;
-                memcpy(downlink_fence_buffer, event->data, copy_len);
-                downlink_fence_buffer[copy_len] = '\0';
-                has_new_fence = true;
-                ESP_LOGI(TAG, "Fence update recibido en Gateway: %s", downlink_fence_buffer);
+                char temp_buf[1024] = {0};
+                int copy_len = event->data_len < (int)sizeof(temp_buf) - 1
+                             ? event->data_len : (int)sizeof(temp_buf) - 1;
+                memcpy(temp_buf, event->data, copy_len);
+                temp_buf[copy_len] = '\0';
+
+                cJSON* root = cJSON_Parse(temp_buf);
+                if (root != NULL) {
+                    cJSON* min_lat_j = cJSON_GetObjectItem(root, "min_lat");
+                    cJSON* max_lat_j = cJSON_GetObjectItem(root, "max_lat");
+                    cJSON* min_lon_j = cJSON_GetObjectItem(root, "min_lon");
+                    cJSON* max_lon_j = cJSON_GetObjectItem(root, "max_lon");
+
+                    if (cJSON_IsNumber(min_lat_j) && cJSON_IsNumber(max_lat_j) &&
+                        cJSON_IsNumber(min_lon_j) && cJSON_IsNumber(max_lon_j)) {
+                        snprintf(downlink_fence_buffer, sizeof(downlink_fence_buffer),
+                                 "{\"min_lat\":%.6f,\"max_lat\":%.6f,\"min_lon\":%.6f,\"max_lon\":%.6f}",
+                                 min_lat_j->valuedouble, max_lat_j->valuedouble,
+                                 min_lon_j->valuedouble, max_lon_j->valuedouble);
+                        has_new_fence = true;
+                        ESP_LOGI(TAG, "Fence update compactado para downlink LoRa (<100 bytes): %s", downlink_fence_buffer);
+                    } else {
+                        ESP_LOGW(TAG, "Faltan min_lat/max_lat/min_lon/max_lon en JSON de fence recibido");
+                    }
+                    cJSON_Delete(root);
+                } else {
+                    ESP_LOGW(TAG, "Fallo al parsear JSON recibido en fence update");
+                }
             }
             break;
 

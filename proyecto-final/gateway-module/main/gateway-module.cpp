@@ -5,6 +5,7 @@
  */
 
 #include <cstdio>
+#include <cstring>
 #include "esp_log.h"
 #include "esp_sleep.h"
 #include "esp_system.h"
@@ -42,10 +43,18 @@ static void lora_rx_processing_task(void* arg) {
         // Bloquear tarea esperando notificación de la ISR (consumo CPU = 0% en espera)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        ESP_LOGI(TAG, "Notificación ISR (DIO0) recibida. Leyendo paquete LoRa por SPI...");
         if (lora_receive(rx_buffer, sizeof(rx_buffer), &rssi, &snr)) {
-            // Pequeño retardo de turnaround (20ms) para asegurar que el Edge ya entró en modo RX
-            vTaskDelay(pdMS_TO_TICKS(20));
+            // Validar que sea un heartbeat JSON real proveniente del módulo Edge
+            if (rx_buffer[0] != '{' || (strstr(rx_buffer, "device_id") == NULL && strstr(rx_buffer, "fence_status") == NULL)) {
+                lora_set_rx_and_prepare_sleep();
+                ulTaskNotifyTake(pdTRUE, 0); // Limpiar notificaciones residuales
+                continue;
+            }
+
+            ESP_LOGI(TAG, "Heartbeat recibido del Edge: %s (RSSI=%.1f, SNR=%.1f)", rx_buffer, rssi, snr);
+
+            // Retardo de turnaround ampliado (350ms) para asegurar que el Edge terminó sus logs y entró en modo RX
+            vTaskDelay(pdMS_TO_TICKS(350));
 
             char downlink[768];
             snprintf(downlink, sizeof(downlink),
@@ -53,7 +62,7 @@ static void lora_rx_processing_task(void* arg) {
                 mqtt_has_new_gps() ? mqtt_get_downlink_gps() : "null",
                 mqtt_has_new_fence() ? mqtt_get_downlink_fence() : "null");
 
-            ESP_LOGI(TAG, "Enviando downlink LoRa al Edge: %s", downlink);
+            ESP_LOGI(TAG, "Enviando downlink LoRa al Edge tras recibir heartbeat: %s", downlink);
             lora_send_downlink(downlink);
             mqtt_reset_flags();
 
@@ -65,12 +74,14 @@ static void lora_rx_processing_task(void* arg) {
 
                 mqtt_init_and_publish(mqtt_payload);
             } else {
-                ESP_LOGW(TAG, "Wi-Fi no conectado. Paquete LoRa procesado y respondido con downlink, pero no enviado a MQTT.");
+                ESP_LOGW(TAG, "Wi-Fi no conectado. Heartbeat procesado y respondido con downlink, pero no enviado a MQTT.");
             }
         }
 
         // Volver a poner en modo RX continuo para el próximo paquete
         lora_set_rx_and_prepare_sleep();
+        // IMPORTANTE: Limpiar cualquier notificación residual disparada por TxDone en DIO0 al enviar el downlink
+        ulTaskNotifyTake(pdTRUE, 0);
     }
 }
 
