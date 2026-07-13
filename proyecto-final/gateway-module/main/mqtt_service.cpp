@@ -34,17 +34,58 @@ static volatile bool has_new_fence = false;
  * =============================================================================
  */
 static const char* resolve_mqtt_uri(void) {
-    esp_ip4_addr_t addr;
-    ESP_LOGI(TAG, "Consultando mDNS A record para host '%s' (timeout 2000 ms)...", MDNS_TARGET_HOST);
-    esp_err_t err = mdns_query_a(MDNS_TARGET_HOST, 2000, &addr);
-    if (err == ESP_OK) {
-        snprintf(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri),
-                 "mqtt://" IPSTR ":1883", IP2STR(&addr));
-        ESP_LOGI(TAG, "mDNS resuelto exitosamente: %s -> %s", MDNS_TARGET_HOST, s_dynamic_mqtt_uri);
-        return s_dynamic_mqtt_uri;
+    // 1. Pequeño retardo (600 ms) tras IP_EVENT_STA_GOT_IP para estabilizar IGMP/multicast en el router
+    vTaskDelay(pdMS_TO_TICKS(600));
+
+    // 2. Intentar auto-descubrimiento de servicios mDNS PTR (_mqtt._tcp.local)
+    mdns_result_t* results = NULL;
+    esp_err_t err = mdns_query_ptr("_mqtt", "_tcp", 1500, 5, &results);
+    if (err == ESP_OK && results != NULL) {
+        mdns_result_t* r = results;
+        while (r) {
+            mdns_ip_addr_t* a = r->addr;
+            while (a) {
+                if (a->addr.type == ESP_IPADDR_TYPE_V4) {
+                    snprintf(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri),
+                             "mqtt://" IPSTR ":%u", IP2STR(&(a->addr.u_addr.ip4)), r->port ? r->port : 1883);
+                    ESP_LOGI(TAG, "Broker MQTT auto-descubierto en red local vía servicio mDNS (_mqtt._tcp): %s", s_dynamic_mqtt_uri);
+                    mdns_query_results_free(results);
+                    return s_dynamic_mqtt_uri;
+                }
+                a = a->next;
+            }
+            r = r->next;
+        }
+        mdns_query_results_free(results);
     }
-    ESP_LOGW(TAG, "mDNS lookup para '%s' no resolvió IP directa (%s). Usando fallback URI: %s",
-             MDNS_TARGET_HOST, esp_err_to_name(err), MQTT_BROKER_URI);
+
+    // 3. Consultar A record para MDNS_TARGET_HOST con reintento (ej. archlinux.local)
+    esp_ip4_addr_t addr;
+    for (int retry = 0; retry < 2; retry++) {
+        err = mdns_query_a(MDNS_TARGET_HOST, 1200, &addr);
+        if (err == ESP_OK) {
+            snprintf(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri),
+                     "mqtt://" IPSTR ":1883", IP2STR(&addr));
+            ESP_LOGI(TAG, "Host mDNS '%s.local' resuelto exitosamente -> %s", MDNS_TARGET_HOST, s_dynamic_mqtt_uri);
+            return s_dynamic_mqtt_uri;
+        }
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+
+    // 4. Intentar hostnames alternativos frecuentes en redes locales
+    const char* fallback_hosts[] = {"iotbroker", "mosquitto"};
+    for (int i = 0; i < 2; i++) {
+        err = mdns_query_a(fallback_hosts[i], 800, &addr);
+        if (err == ESP_OK) {
+            snprintf(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri),
+                     "mqtt://" IPSTR ":1883", IP2STR(&addr));
+            ESP_LOGI(TAG, "Host mDNS '%s.local' resuelto -> %s", fallback_hosts[i], s_dynamic_mqtt_uri);
+            return s_dynamic_mqtt_uri;
+        }
+    }
+
+    // 5. Si no hay publicidad mDNS en la red, usar limpiamente la URI por defecto configurada
+    ESP_LOGI(TAG, "Usando broker MQTT configurado por defecto para la red: %s", MQTT_BROKER_URI);
     return MQTT_BROKER_URI;
 }
 

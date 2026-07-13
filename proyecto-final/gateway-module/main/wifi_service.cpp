@@ -28,6 +28,7 @@ static void on_wifi_connected(void* param) {
         if (err == ESP_OK) {
             mdns_hostname_set(MDNS_HOSTNAME);
             mdns_instance_name_set("ESP32 LoRa Gateway Module");
+            mdns_service_add("ESP32 Gateway Service", "_iotgateway", "_tcp", 80, NULL, 0);
             ESP_LOGI(TAG, "Servicio mDNS inicializado. Hostname: %s.local", MDNS_HOSTNAME);
             s_mdns_initialized = true;
         } else {

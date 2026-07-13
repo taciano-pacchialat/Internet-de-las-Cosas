@@ -8,6 +8,22 @@ export interface FenceUpdateResponse {
   message: string;
   topic?: string;
   timestamp?: number;
+  fence?: any;
+}
+
+export async function fetchCurrentGeofence(): Promise<[number, number][] | null> {
+  try {
+    const response = await fetch('/api/fence/current');
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data && data.fence && Array.isArray(data.fence.vertices) && data.fence.vertices.length >= 3) {
+      return data.fence.vertices.map((v: any) => [Number(v.lat), Number(v.lon)]);
+    }
+    return null;
+  } catch (err) {
+    console.warn('No se pudo obtener el fence actual de InfluxDB:', err);
+    return null;
+  }
 }
 
 export async function sendGeofenceUpdate(vertices: FenceVertex[]): Promise<FenceUpdateResponse> {
@@ -26,7 +42,7 @@ export async function sendGeofenceUpdate(vertices: FenceVertex[]): Promise<Fence
   };
 
   try {
-    const response = await fetch('/api/node-red/api/update-fence', {
+    const response = await fetch('/api/fence', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -35,8 +51,16 @@ export async function sendGeofenceUpdate(vertices: FenceVertex[]): Promise<Fence
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errText || response.statusText}`);
+      // Fallback a /api/node-red/api/update-fence si /api/fence respondiera error en transición
+      const resFallback = await fetch('/api/node-red/api/update-fence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!resFallback.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await resFallback.json();
     }
 
     const data: FenceUpdateResponse = await response.json();

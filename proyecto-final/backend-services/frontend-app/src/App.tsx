@@ -4,7 +4,7 @@ import { Header } from './components/Header';
 import { MetricCard } from './components/MetricCard';
 import { GeofenceMap } from './components/GeofenceMap';
 import { TelemetryCharts } from './components/TelemetryCharts';
-import { sendGeofenceUpdate, type FenceVertex } from './services/fenceService';
+import { sendGeofenceUpdate, fetchCurrentGeofence, type FenceVertex } from './services/fenceService';
 import {
   Battery,
   Radio,
@@ -17,8 +17,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   X,
-  Plus,
-  Minus,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
@@ -36,6 +34,9 @@ const INITIAL_GEOFENCE: [number, number][] = [
 export default function App() {
   const {
     latestPoint,
+    latestPointsByDevice,
+    trailsByDevice,
+    availableDevices,
     history,
     isLoading,
     isSimulated,
@@ -48,6 +49,21 @@ export default function App() {
   const [showBoundingBox, setShowBoundingBox] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Modo de visualización del mapa: Live vs Trail
+  const [viewMode, setViewMode] = useState<'Live' | 'Trail'>('Live');
+  const [selectedDevice, setSelectedDevice] = useState<string>('ALL');
+
+  // Sincronización Inicial con InfluxDB al cargar la app (evita desincronización tras F5)
+  useEffect(() => {
+    async function syncPersistedFence() {
+      const persisted = await fetchCurrentGeofence();
+      if (persisted && persisted.length >= 3) {
+        setPolygonCoords(persisted);
+      }
+    }
+    syncPersistedFence();
+  }, []);
 
   // Ocultar toast automáticamente
   useEffect(() => {
@@ -103,31 +119,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedVertexIndex, moveVertex]);
 
-  // Añadir un vértice adicional
-  const handleAddVertex = () => {
-    setPolygonCoords((prev): [number, number][] => {
-      if (prev.length < 2) return prev;
-      const last = prev[prev.length - 1];
-      const first = prev[0];
-      const midLat = Number(((last[0] + first[0]) / 2).toFixed(6));
-      const midLon = Number(((last[1] + first[1]) / 2).toFixed(6));
-      const updated: [number, number][] = [...prev, [midLat, midLon]];
-      setSelectedVertexIndex(updated.length - 1);
-      return updated;
-    });
-  };
-
-  // Quitar el vértice seleccionado o el último
-  const handleRemoveVertex = () => {
-    setPolygonCoords((prev): [number, number][] => {
-      if (prev.length <= 3) return prev;
-      const idxToRemove = selectedVertexIndex !== null ? selectedVertexIndex : prev.length - 1;
-      const updated: [number, number][] = prev.filter((_, i) => i !== idxToRemove);
-      setSelectedVertexIndex(Math.min(idxToRemove, updated.length - 1));
-      return updated;
-    });
-  };
-
   // Guardar y publicar el perímetro al broker MQTT via Node-RED
   const handleSaveFence = async () => {
     setIsSaving(true);
@@ -174,7 +165,7 @@ export default function App() {
   const wakeCount = latestPoint?.wake_count ?? 0;
 
   return (
-    <div className="min-h-screen bg-hud-bg flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-hud-bg flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
       {/* Toast de Alertas y Confirmaciones MQTT */}
       {toast && (
         <div
@@ -201,12 +192,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Tactical Header */}
+      {/* Header Industrial de Telemetría */}
       <Header
         fenceStatus={fenceStatus}
         deviceId={deviceId}
         isSimulated={isSimulated}
         onRefresh={refetch}
+        viewMode={viewMode}
+        onToggleViewMode={setViewMode}
+        selectedDevice={selectedDevice}
+        availableDevices={availableDevices}
+        onSelectDevice={setSelectedDevice}
       />
 
       {/* Main Command Console Space */}
@@ -215,7 +211,7 @@ export default function App() {
         {isLoading && (
           <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-4 py-2 rounded-lg">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Sincronizando flujo de telemetría desde InfluxDB...
+            Sincronizando flujo de telemetría e historial desde InfluxDB...
           </div>
         )}
 
@@ -255,11 +251,15 @@ export default function App() {
           />
         </section>
 
-        {/* Row 2: Live Geofence Map Console & Precision Vertex Controller */}
+        {/* Row 2: Geofence Map Console & Precision Vertex Controller */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Columna Izquierda/Central: Mapa IoT */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 h-[580px] lg:h-[660px]">
             <GeofenceMap
+              viewMode={viewMode}
+              selectedDevice={selectedDevice}
+              latestPointsByDevice={latestPointsByDevice}
+              trailsByDevice={trailsByDevice}
               latitude={lat}
               longitude={lon}
               fenceStatus={fenceStatus}
@@ -321,26 +321,11 @@ export default function App() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-mono font-bold tracking-wider text-amber-400 uppercase flex items-center gap-1.5">
                     <Keyboard className="w-4 h-4 text-amber-400" />
-                    VÉRTICES DEL CORRAL ({polygonCoords.length})
+                    VÉRTICES DEL CORRAL (4 FIJOS)
                   </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={handleAddVertex}
-                      className="px-2 py-0.5 rounded text-[10px] font-mono border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                      title="Agregar vértice intermedio"
-                    >
-                      <Plus className="w-3 h-3 inline" /> AÑADIR
-                    </button>
-                    {polygonCoords.length > 3 && (
-                      <button
-                        onClick={handleRemoveVertex}
-                        className="px-2 py-0.5 rounded text-[10px] font-mono border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                        title="Eliminar vértice seleccionado"
-                      >
-                        <Minus className="w-3 h-3 inline" /> QUITAR
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-[10px] font-mono text-gray-400 bg-hud-surface border border-hud-border px-2 py-0.5 rounded">
+                    FIJOS
+                  </span>
                 </div>
 
                 {/* Instrucción de Teclado */}

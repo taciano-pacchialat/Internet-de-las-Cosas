@@ -102,8 +102,35 @@ docker exec -it geofence-influxdb influx -database 'geofence_db' -execute 'SELEC
 
 ---
 
-## 7. Próximos Pasos Sugeridos para Futuras Sesiones
+## 7. Arquitectura del Frontend y Modos de Visualización Interactivos (`backend-services/frontend-app/`)
+
+El frontend web (`React 18` + `Vite` + `Tailwind CSS` + `Leaflet`) fue diseñado y construido bajo una filosofía estrictamente sobria, técnica e industrial, eliminando cualquier estilo residual "retro/fancy":
+
+### A. Filosofía de Diseño Industrial (Tailwind CSS)
+- **Paleta Técnica:** Fondos grises oscuros (`bg-gray-900`, `bg-gray-800`), bordes divisorios técnicos (`border-gray-700`), tipografía limpia sin serifa (`Inter`, `monospace`) e indicadores lumínicos LED de estado (rojo intermitente para alerta, verde esmeralda para seguro).
+- **Consola HUD:** Paneles modulares informativos con telemetría en tiempo real (Batería LiPo, RSSI, SNR y ciclos de despertado/Wake Count).
+
+### B. Sistema de Modos de Vista (`Live` vs `Trail`)
+El componente principal de navegación (`Header.tsx`) y el visor geográfico (`GeofenceMap.tsx`) operan en dos modos mutuamente excluyentes controlados por el estado `viewMode`:
+
+1. **Modo "En Vivo" (Live View):**
+   - **Perímetro Activo:** Muestra el polígono de la Geocerca actual persistida en base de datos junto a sus 4 vértices interactivos (`LivePolygonEditor`) para ajuste por teclado (`↑ ↓ ← →`) o arrastre.
+   - **Posición Más Reciente:** Consulta InfluxDB (`useCattleTelemetry`) agrupando por `device_id` para dibujar **exclusivamente el punto más reciente** de cada animal en el campo.
+   - **Caja Hardware (Bounding Box):** Permite visualizar el rectángulo envolvente (`min/max lat/lon`) evaluado por el firmware Edge en el collar.
+   - **Sin Ruido Visual:** Suprime por completo líneas históricas o trayectorias pasadas.
+
+2. **Modo "Rutas" (Trail / Breadcrumbs Mode):**
+   - **Ocultamiento de Geocerca:** Oculta deliberadamente el polígono de la Geocerca para enfocar el análisis en las trayectorias de movimiento sin saturar el mapa.
+   - **Selector de Entidades (`selectedDevice`):** Dropdown que permite aislar un dispositivo concreto (`vaca-01`, `vaca-02`, etc.) o seleccionar la vista global **"TODAS LAS VACAS (ALL)"** donde cada animal adquiere un color distintivo.
+   - **Trazado Cronológico (`<Polyline>`):** Conecta las posiciones históricas ordenadas cronológicamente en orden ascendente.
+   - **Vectores de Sentido Nativos:** En los últimos 2 a 3 segmentos de cada recorrido, se proyectan marcadores nativos de Leaflet (`L.divIcon` con SVG orientable) sin dependencias externas complejas. La orientación de las flechas se calcula matemáticamente mediante álgebra vectorial:
+     $$\theta = \text{atan2}(\Delta \text{lon}, \Delta \text{lat}) \times \frac{180}{\pi}$$
+
+---
+
+## 8. Próximos Pasos Sugeridos para Futuras Sesiones
 
 1. **Prueba en Hardware Real:** Conectar el ESP32-CAM (Gateway) y el ESP32 clásico (Edge), flashearlos usando `idf.py -p /dev/ttyUSBX flash monitor` y validar el enlace de radio de 433 MHz en campo.
 2. **Calibración de la Geocerca:** Ajustar en `edge_config.h` el radio predeterminado (`GEOFENCE_DEFAULT_RADIUS_METERS`) y la posición del centro de la zona segura según el terreno real.
 3. **Activación del Bot de Telegram:** Obtener un token en @BotFather y reemplazar `TU_TOKEN_AQUI` en el flujo deshabilitado de Node-RED para permitir consultas remotas desde celulares.
+4. **Despliegue del Frontend:** Empaquetar la construcción estática verificada (`npm run build` en `backend-services/frontend-app/dist/`) en un contenedor Nginx o integrarla directamente al servidor Node-RED.

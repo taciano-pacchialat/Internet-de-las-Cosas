@@ -16,6 +16,14 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/node-red/, ''),
       },
+      '/api/fence': {
+        target: 'http://localhost:1880',
+        changeOrigin: true,
+      },
+      '/api/history': {
+        target: 'http://localhost:1880',
+        changeOrigin: true,
+      },
     },
   },
 });
