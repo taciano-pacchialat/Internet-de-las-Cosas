@@ -2,7 +2,7 @@
     {
         "id": "flow_tab_mqtt_influx",
         "type": "tab",
-        "label": "MQTT \u2192 InfluxDB",
+        "label": "MQTT → InfluxDB",
         "disabled": false,
         "info": "Recibe heartbeats del gateway y los almacena en InfluxDB"
     },
@@ -16,9 +16,16 @@
     {
         "id": "flow_tab_gps_sim",
         "type": "tab",
-        "label": "Dashboard \u2014 GPS Simulado",
+        "label": "Dashboard — GPS Simulado",
         "disabled": false,
         "info": "Dashboard para inyectar coordenadas GPS simuladas y publicarlas por MQTT con retain"
+    },
+    {
+        "id": "flow_tab_geofence_api",
+        "type": "tab",
+        "label": "API Geofence Perímetro",
+        "disabled": false,
+        "info": "API HTTP POST/GET /api/update-fence y /api/fence desde Dashboard UI hacia MQTT, InfluxDB geofence_config y Auto-recarga"
     },
     {
         "id": "mqtt_broker_config",
@@ -181,6 +188,31 @@
         }
     },
     {
+        "id": "telegram_bot_config",
+        "type": "telegram bot",
+        "botname": "GeofenceGanaderoBot",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "updatemode": "polling",
+        "addressfamily": "4",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
         "id": "mqtt_in_heartbeat",
         "type": "mqtt in",
         "z": "flow_tab_mqtt_influx",
@@ -253,57 +285,78 @@
         "wires": []
     },
     {
-        "id": "telegram_bot_config",
-        "type": "telegram bot",
-        "botname": "GeofenceGanaderoBot",
-        "usernames": "",
-        "chatids": "",
-        "baseapiurl": "",
-        "updatemode": "polling",
-        "pollinterval": "300",
-        "usesocks": false,
-        "sockshost": "",
-        "socksport": "6667",
-        "socksusername": "anonymous",
-        "sockspassword": "",
-        "bothost": "",
-        "botpath": "",
-        "localbotport": "8443",
-        "publicbotport": "8443",
-        "privatekey": "",
-        "certificate": "",
-        "useselfsignedcertificate": false,
-        "sslterminated": false,
-        "verboselogging": false,
-        "addressfamily": "4"
-    },
-    {
-        "id": "tg_mqtt_in_alert",
-        "type": "mqtt in",
+        "id": "tg_inject_poll_db",
+        "type": "inject",
         "z": "flow_tab_telegram",
-        "name": "Heartbeats (para alertas)",
-        "topic": "geofence/heartbeat",
-        "qos": "1",
-        "datatype": "json",
-        "broker": "mqtt_broker_config",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 170,
+        "name": "Poll InfluxDB (15s)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "15",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 5,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
         "y": 100,
-        "wires": [["tg_filter_outside"]]
+        "wires": [
+            [
+                "tg_build_poll_query"
+            ]
+        ]
     },
     {
-        "id": "tg_filter_outside",
+        "id": "tg_build_poll_query",
         "type": "function",
         "z": "flow_tab_telegram",
-        "name": "Filtrar OUTSIDE + Formatear Alerta",
-        "func": "var data = msg.payload;\nif (!data || data.fence_status !== 'OUTSIDE') {\n    return null;\n}\n\n// Calcular distancia al centro del fence (bounding box)\nvar fenceMinLat = flow.get('fence_min_lat') || global.get('fence_min_lat') || -34.9250;\nvar fenceMaxLat = flow.get('fence_max_lat') || global.get('fence_max_lat') || -34.9150;\nvar fenceMinLon = flow.get('fence_min_lon') || global.get('fence_min_lon') || -57.9600;\nvar fenceMaxLon = flow.get('fence_max_lon') || global.get('fence_max_lon') || -57.9450;\n\n// Centro del bounding box\nvar centerLat = (fenceMinLat + fenceMaxLat) / 2;\nvar centerLon = (fenceMinLon + fenceMaxLon) / 2;\n\n// Haversine simplificado para distancia en metros\nvar R = 6378137.0;\nvar dLat = (data.lat - centerLat) * Math.PI / 180;\nvar dLon = (data.lon - centerLon) * Math.PI / 180;\nvar a = Math.sin(dLat/2) * Math.sin(dLat/2) +\n        Math.cos(centerLat * Math.PI / 180) * Math.cos(data.lat * Math.PI / 180) *\n        Math.sin(dLon/2) * Math.sin(dLon/2);\nvar dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n\n// Distancia al borde más cercano del fence\nvar distToBorderLat = 0;\nif (data.lat < fenceMinLat) distToBorderLat = fenceMinLat - data.lat;\nelse if (data.lat > fenceMaxLat) distToBorderLat = data.lat - fenceMaxLat;\n\nvar distToBorderLon = 0;\nif (data.lon < fenceMinLon) distToBorderLon = fenceMinLon - data.lon;\nelse if (data.lon > fenceMaxLon) distToBorderLon = data.lon - fenceMaxLon;\n\nvar dLatBorder = distToBorderLat * Math.PI / 180;\nvar dLonBorder = distToBorderLon * Math.PI / 180;\nvar aBorder = Math.sin(dLatBorder/2) * Math.sin(dLatBorder/2) +\n             Math.cos(data.lat * Math.PI / 180) * Math.cos(data.lat * Math.PI / 180) *\n             Math.sin(dLonBorder/2) * Math.sin(dLonBorder/2);\nvar distBorder = R * 2 * Math.atan2(Math.sqrt(aBorder), Math.sqrt(1-aBorder));\n\nvar mapsUrl = 'https://www.google.com/maps?q=' + data.lat + ',' + data.lon;\n\nvar text = '🔴 *ALERTA DE GEOFENCE*\\n\\n';\ntext += '📛 Módulo: `' + data.device_id + '`\\n';\ntext += '⚠️ Estado: *FUERA DEL PERÍMETRO*\\n\\n';\ntext += '📍 Ubicación actual:\\n';\ntext += '[Ver en Google Maps](' + mapsUrl + ')\\n\\n';\ntext += '📏 Distancia al borde del fence: *' + distBorder.toFixed(1) + ' metros*\\n';\ntext += '📏 Distancia al centro del fence: *' + dist.toFixed(1) + ' metros*\\n\\n';\ntext += '🔋 Batería: ' + (data.battery || 'N/A') + '%\\n';\ntext += '📶 RSSI: ' + (data.rssi || 'N/A') + ' dBm | SNR: ' + (data.snr || 'N/A') + '\\n';\ntext += '⏱️ Ciclo: #' + (data.wake_count || 0);\n\n// CHAT_ID del usuario para alertas proactivas\nvar chatId = 5278783015;\n\nmsg.payload = {\n    chatId: chatId,\n    type: 'message',\n    content: text,\n    options: { parse_mode: 'Markdown', disable_web_page_preview: false }\n};\nreturn msg;",
+        "name": "Query Última Posición (24h)",
+        "func": "msg.query = 'SELECT last(\"latitude\") AS lat, last(\"longitude\") AS lon, last(\"battery\") AS battery, last(\"rssi\") AS rssi, last(\"snr\") AS snr, last(\"wake_count\") AS wake_count FROM \"cattle_position\" WHERE time > now() - 24h GROUP BY \"device_id\"';\nreturn msg;",
         "outputs": 1,
         "x": 440,
         "y": 100,
-        "wires": [["tg_sender_alert"]]
+        "wires": [
+            [
+                "tg_poll_influx"
+            ]
+        ]
+    },
+    {
+        "id": "tg_poll_influx",
+        "type": "influxdb in",
+        "z": "flow_tab_telegram",
+        "influxdb": "influx_config",
+        "name": "Query InfluxDB Alertas",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "",
+        "x": 720,
+        "y": 100,
+        "wires": [
+            [
+                "tg_check_outside_db"
+            ]
+        ]
+    },
+    {
+        "id": "tg_check_outside_db",
+        "type": "function",
+        "z": "flow_tab_telegram",
+        "name": "Verificar OUTSIDE y Alerta Telegram",
+        "func": "var rows = msg.payload;\nif (!rows || !Array.isArray(rows) || rows.length === 0) {\n    return null;\n}\n\n// Obtener coordenadas de la geocerca (bounding box y vértices si existen)\nvar fenceMinLat = flow.get('fence_min_lat') || global.get('fence_min_lat') || -34.9250;\nvar fenceMaxLat = flow.get('fence_max_lat') || global.get('fence_max_lat') || -34.9150;\nvar fenceMinLon = flow.get('fence_min_lon') || global.get('fence_min_lon') || -57.9600;\nvar fenceMaxLon = flow.get('fence_max_lon') || global.get('fence_max_lon') || -57.9450;\nvar vJson = flow.get('fence_vertices_json') || global.get('fence_vertices_json');\nvar vertices = null;\nif (vJson) {\n    try { vertices = JSON.parse(vJson); } catch(e) {}\n}\n\nvar centerLat = (fenceMinLat + fenceMaxLat) / 2;\nvar centerLon = (fenceMinLon + fenceMaxLon) / 2;\nvar R = 6378137.0;\nvar chatId = 5278783015;\nvar messages = [];\n\nfor (var i = 0; i < rows.length; i++) {\n    var r = rows[i];\n    var devId = r.device_id || (r.tags && r.tags.device_id) || r.name || 'edge-01';\n    var lat = parseFloat(r.lat) || 0;\n    var lon = parseFloat(r.lon) || 0;\n    if (lat === 0 && lon === 0) continue;\n\n    var isMuted = flow.get('muted_' + devId) || global.get('muted_' + devId) || false;\n    if (isMuted) continue;\n\n    var isInside = false;\n    if (vertices && Array.isArray(vertices) && vertices.length >= 3) {\n        var inside = false;\n        for (var j = 0, k = vertices.length - 1; j < vertices.length; k = j++) {\n            var xi = vertices[j].lat, yi = vertices[j].lon;\n            var xj = vertices[k].lat, yj = vertices[k].lon;\n            var intersect = ((yi > lon) !== (yj > lon)) &&\n                (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);\n            if (intersect) inside = !inside;\n        }\n        isInside = inside;\n    } else {\n        isInside = (lat >= fenceMinLat && lat <= fenceMaxLat &&\n                    lon >= fenceMinLon && lon <= fenceMaxLon);\n    }\n\n    if (!isInside) {\n        var now = Date.now();\n        var lastAlertTime = flow.get('last_alert_time_' + devId) || 0;\n        // Anti-flood de 40 segundos\n        if ((now - lastAlertTime) < 40000) {\n            continue;\n        }\n        flow.set('last_alert_time_' + devId, now);\n\n        var dLat = (lat - centerLat) * Math.PI / 180;\n        var dLon = (lon - centerLon) * Math.PI / 180;\n        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +\n                Math.cos(centerLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *\n                Math.sin(dLon/2) * Math.sin(dLon/2);\n        var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n\n        var distToBorderLat = 0;\n        if (lat < fenceMinLat) distToBorderLat = fenceMinLat - lat;\n        else if (lat > fenceMaxLat) distToBorderLat = lat - fenceMaxLat;\n\n        var distToBorderLon = 0;\n        if (lon < fenceMinLon) distToBorderLon = fenceMinLon - lon;\n        else if (lon > fenceMaxLon) distToBorderLon = lon - fenceMaxLon;\n\n        var dLatBorder = distToBorderLat * Math.PI / 180;\n        var dLonBorder = distToBorderLon * Math.PI / 180;\n        var aBorder = Math.sin(dLatBorder/2) * Math.sin(dLatBorder/2) +\n                     Math.cos(lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *\n                     Math.sin(dLonBorder/2) * Math.sin(dLonBorder/2);\n        var distBorder = R * 2 * Math.atan2(Math.sqrt(aBorder), Math.sqrt(1-aBorder));\n\n        var mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lon;\n\n        var text = '🔴 *ALERTA AUTOMÁTICA DE GEOFENCE*\\n\\n';\n        text += '📛 Módulo: `' + devId + '`\\n';\n        text += '⚠️ Estado: *FUERA DEL PERÍMETRO (InfluxDB)*\\n\\n';\n        text += '📍 Última Ubicación registrada:\\n';\n        text += '[Ver en Google Maps](' + mapsUrl + ')\\n\\n';\n        text += '📏 Distancia al borde del fence: *' + distBorder.toFixed(1) + ' metros*\\n';\n        text += '📏 Distancia al centro del fence: *' + dist.toFixed(1) + ' metros*\\n\\n';\n        text += '🔋 Batería: ' + (r.battery !== undefined ? r.battery : 'N/A') + '%\\n';\n        text += '📶 RSSI: ' + (r.rssi !== undefined ? r.rssi : 'N/A') + ' dBm | SNR: ' + (r.snr !== undefined ? r.snr : 'N/A') + '\\n';\n        text += '⏱️ Ciclo: #' + (r.wake_count || 0);\n\n        messages.push({\n            payload: {\n                chatId: chatId,\n                type: 'message',\n                content: text,\n                options: { parse_mode: 'Markdown', disable_web_page_preview: false }\n            }\n        });\n    }\n}\n\nif (messages.length === 0) return null;\nif (messages.length === 1) return messages[0];\nreturn [messages];",
+        "outputs": 1,
+        "x": 1070,
+        "y": 80,
+        "wires": [
+            [
+                "tg_sender_alert"
+            ]
+        ]
     },
     {
         "id": "tg_sender_alert",
@@ -313,9 +366,11 @@
         "bot": "telegram_bot_config",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 710,
-        "y": 100,
-        "wires": [[]]
+        "x": 1420,
+        "y": 60,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "tg_cmd_modulos",
@@ -325,12 +380,15 @@
         "command": "/modulos",
         "bot": "telegram_bot_config",
         "strict": false,
-        "hasaliases": false,
-        "aliases": "",
-        "hasaliasaliases": false,
+        "outputs": 2,
         "x": 150,
         "y": 240,
-        "wires": [["tg_query_modulos"], []]
+        "wires": [
+            [
+                "tg_query_modulos"
+            ],
+            []
+        ]
     },
     {
         "id": "tg_influx_query_modulos",
@@ -343,9 +401,13 @@
         "precision": "",
         "retentionPolicy": "",
         "org": "",
-        "x": 570,
-        "y": 240,
-        "wires": [["tg_format_modulos"]]
+        "x": 740,
+        "y": 200,
+        "wires": [
+            [
+                "tg_format_modulos"
+            ]
+        ]
     },
     {
         "id": "tg_query_modulos",
@@ -354,9 +416,13 @@
         "name": "Construir Query Módulos",
         "func": "// Guardar el chatId original para la respuesta\nflow.set('tg_modulos_chatId', msg.originalMessage.chat.id);\n\n// Query para obtener el último registro de cada device_id activo en las últimas 24h\nmsg.query = 'SELECT last(\"latitude\") AS lat, last(\"longitude\") AS lon FROM \"cattle_position\" WHERE time > now() - 24h GROUP BY \"device_id\"';\nreturn msg;",
         "outputs": 1,
-        "x": 370,
-        "y": 240,
-        "wires": [["tg_influx_query_modulos"]]
+        "x": 430,
+        "y": 200,
+        "wires": [
+            [
+                "tg_influx_query_modulos"
+            ]
+        ]
     },
     {
         "id": "tg_format_modulos",
@@ -365,9 +431,13 @@
         "name": "Formatear Lista Módulos (Inline Keyboard)",
         "func": "var results = msg.payload;\nvar chatId = flow.get('tg_modulos_chatId');\n\nif (!results || results.length === 0) {\n    msg.payload = {\n        chatId: chatId,\n        type: 'message',\n        content: '📡 No hay módulos activos en las últimas 24 horas.',\n        options: { parse_mode: 'Markdown' }\n    };\n    return msg;\n}\n\n// Extraer device_ids únicos\nvar devices = [];\nvar groupResults = msg.payload;\n\n// InfluxDB GROUP BY devuelve un array de series, cada una con tags\nif (Array.isArray(groupResults)) {\n    for (var i = 0; i < groupResults.length; i++) {\n        var row = groupResults[i];\n        var devId = '';\n        // El device_id puede venir como tag en el objeto o en groupTags\n        if (row.device_id) devId = row.device_id;\n        else if (row.tags && row.tags.device_id) devId = row.tags.device_id;\n        else if (row.name) devId = row.name;\n        if (devId && devices.indexOf(devId) === -1) {\n            devices.push(devId);\n        }\n    }\n}\n\nif (devices.length === 0) {\n    msg.payload = {\n        chatId: chatId,\n        type: 'message',\n        content: '📡 No se encontraron módulos activos.',\n        options: { parse_mode: 'Markdown' }\n    };\n    return msg;\n}\n\n// Construir botones inline (un botón por módulo)\nvar keyboard = [];\nfor (var j = 0; j < devices.length; j++) {\n    keyboard.push([{ text: '📍 ' + devices[j], callback_data: '/detalle_' + devices[j] }]);\n}\n\nvar text = '📡 *Módulos Activos (' + devices.length + '):*\\n\\n';\ntext += 'Seleccioná un módulo para ver su ubicación y estado:';\n\nmsg.payload = {\n    chatId: chatId,\n    type: 'message',\n    content: text,\n    options: {\n        parse_mode: 'Markdown',\n        reply_markup: JSON.stringify({ inline_keyboard: keyboard })\n    }\n};\nreturn msg;",
         "outputs": 1,
-        "x": 800,
-        "y": 240,
-        "wires": [["tg_sender_modulos"]]
+        "x": 1110,
+        "y": 180,
+        "wires": [
+            [
+                "tg_sender_modulos"
+            ]
+        ]
     },
     {
         "id": "tg_sender_modulos",
@@ -377,9 +447,11 @@
         "bot": "telegram_bot_config",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 1070,
-        "y": 240,
-        "wires": [[]]
+        "x": 1620,
+        "y": 380,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "tg_callback_detalle",
@@ -391,18 +463,29 @@
         "autoanswer": true,
         "x": 170,
         "y": 380,
-        "wires": [["tg_parse_callback"]]
+        "wires": [
+            [
+                "tg_parse_callback"
+            ]
+        ]
     },
     {
         "id": "tg_parse_callback",
         "type": "function",
         "z": "flow_tab_telegram",
-        "name": "Parsear Callback → Query Detalle",
-        "func": "var callbackData = msg.payload.content || '';\nvar chatId = msg.payload.chatId;\n\n// Extraer device_id del callback_data: '/detalle_edge-01' → 'edge-01'\nif (!callbackData.startsWith('/detalle_')) {\n    return null;\n}\nvar deviceId = callbackData.replace('/detalle_', '');\n\n// Guardar contexto para la respuesta\nflow.set('tg_detalle_chatId', chatId);\nflow.set('tg_detalle_deviceId', deviceId);\n\n// Query con filtro por device_id\nmsg.query = 'SELECT last(\"latitude\") AS lat, last(\"longitude\") AS lon, last(\"battery\") AS battery, last(\"rssi\") AS rssi, last(\"snr\") AS snr, last(\"wake_count\") AS wake_count FROM \"cattle_position\" WHERE \"device_id\" = \\'' + deviceId + '\\' AND time > now() - 24h';\nreturn msg;",
-        "outputs": 1,
-        "x": 400,
-        "y": 380,
-        "wires": [["tg_influx_query_detalle"]]
+        "name": "Parsear Callback → Query Detalle / Toggle Mute",
+        "func": "var callbackData = msg.payload.content || '';\nvar chatId = msg.payload.chatId;\n\nif (callbackData.startsWith('/toggle_mute_')) {\n    var deviceId = callbackData.replace('/toggle_mute_', '');\n    var current = flow.get('muted_' + deviceId) || global.get('muted_' + deviceId) || false;\n    var newState = !current;\n    flow.set('muted_' + deviceId, newState);\n    global.set('muted_' + deviceId, newState);\n\n    var text = newState ? \n        '🔕 *Alertas silenciadas* para el módulo `' + deviceId + '`.\\nNo recibirás notificaciones automáticas si sale del perímetro.' :\n        '🔔 *Alertas activadas* para el módulo `' + deviceId + '`.\\nRecibirás notificaciones si sale del perímetro.';\n\n    var keyboard = [\n        [{ text: newState ? '🔔 Activar Alertas' : '🔕 Silenciar Alertas', callback_data: '/toggle_mute_' + deviceId }],\n        [{ text: '📍 Ver Detalle de ' + deviceId, callback_data: '/detalle_' + deviceId }]\n    ];\n\n    return [null, {\n        payload: {\n            chatId: chatId,\n            type: 'message',\n            content: text,\n            options: {\n                parse_mode: 'Markdown',\n                reply_markup: JSON.stringify({ inline_keyboard: keyboard })\n            }\n        }\n    }];\n}\n\n// Extraer device_id del callback_data: '/detalle_edge-01' → 'edge-01'\nif (!callbackData.startsWith('/detalle_')) {\n    return null;\n}\nvar deviceId = callbackData.replace('/detalle_', '');\n\n// Guardar contexto para la respuesta\nflow.set('tg_detalle_chatId', chatId);\nflow.set('tg_detalle_deviceId', deviceId);\n\n// Query con filtro por device_id\nmsg.query = 'SELECT last(\"latitude\") AS lat, last(\"longitude\") AS lon, last(\"battery\") AS battery, last(\"rssi\") AS rssi, last(\"snr\") AS snr, last(\"wake_count\") AS wake_count FROM \"cattle_position\" WHERE \"device_id\" = \\'' + deviceId + '\\' AND time > now() - 24h';\nreturn [msg, null];",
+        "outputs": 2,
+        "x": 460,
+        "y": 300,
+        "wires": [
+            [
+                "tg_influx_query_detalle"
+            ],
+            [
+                "tg_sender_detalle"
+            ]
+        ]
     },
     {
         "id": "tg_influx_query_detalle",
@@ -415,20 +498,28 @@
         "precision": "",
         "retentionPolicy": "",
         "org": "",
-        "x": 640,
-        "y": 380,
-        "wires": [["tg_format_detalle"]]
+        "x": 720,
+        "y": 440,
+        "wires": [
+            [
+                "tg_format_detalle"
+            ]
+        ]
     },
     {
         "id": "tg_format_detalle",
         "type": "function",
         "z": "flow_tab_telegram",
         "name": "Formatear Detalle + Google Maps",
-        "func": "var results = msg.payload;\nvar chatId = flow.get('tg_detalle_chatId');\nvar deviceId = flow.get('tg_detalle_deviceId');\n\nif (!results || results.length === 0) {\n    msg.payload = {\n        chatId: chatId,\n        type: 'message',\n        content: '❌ No se encontraron datos para el módulo `' + deviceId + '`.',\n        options: { parse_mode: 'Markdown' }\n    };\n    return msg;\n}\n\nvar r = results[0];\nvar lat = r.lat || 0;\nvar lon = r.lon || 0;\n\n// Evaluar geofence (bounding box)\nvar fenceMinLat = flow.get('fence_min_lat') || global.get('fence_min_lat') || -34.9250;\nvar fenceMaxLat = flow.get('fence_max_lat') || global.get('fence_max_lat') || -34.9150;\nvar fenceMinLon = flow.get('fence_min_lon') || global.get('fence_min_lon') || -57.9600;\nvar fenceMaxLon = flow.get('fence_max_lon') || global.get('fence_max_lon') || -57.9450;\n\nvar isInside = (lat >= fenceMinLat && lat <= fenceMaxLat &&\n               lon >= fenceMinLon && lon <= fenceMaxLon);\n\nvar statusIcon = isInside ? '🟢' : '🔴';\nvar statusText = isInside ? 'DENTRO del perímetro' : 'FUERA del perímetro';\n\nvar mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lon;\n\nvar text = '🐄 *Detalle del Módulo:* `' + deviceId + '`\\n\\n';\ntext += statusIcon + ' Estado: *' + statusText + '*\\n\\n';\ntext += '📍 Ubicación:\\n';\ntext += '[🗺️ Ver en Google Maps](' + mapsUrl + ')\\n\\n';\ntext += '🔋 Batería: ' + (r.battery || 'N/A') + '%\\n';\ntext += '📶 RSSI: ' + (r.rssi || 'N/A') + ' dBm\\n';\ntext += '📶 SNR: ' + (r.snr || 'N/A') + '\\n';\ntext += '⏱️ Último ciclo: #' + (r.wake_count || 'N/A');\n\nmsg.payload = {\n    chatId: chatId,\n    type: 'message',\n    content: text,\n    options: { parse_mode: 'Markdown', disable_web_page_preview: false }\n};\nreturn msg;",
+        "func": "var results = msg.payload;\nvar chatId = flow.get('tg_detalle_chatId');\nvar deviceId = flow.get('tg_detalle_deviceId');\n\nif (!results || results.length === 0) {\n    msg.payload = {\n        chatId: chatId,\n        type: 'message',\n        content: '❌ No se encontraron datos para el módulo `' + deviceId + '`.',\n        options: { parse_mode: 'Markdown' }\n    };\n    return msg;\n}\n\nvar r = results[0];\nvar lat = r.lat || 0;\nvar lon = r.lon || 0;\n\n// Evaluar geofence (bounding box)\nvar fenceMinLat = flow.get('fence_min_lat') || global.get('fence_min_lat') || -34.9250;\nvar fenceMaxLat = flow.get('fence_max_lat') || global.get('fence_max_lat') || -34.9150;\nvar fenceMinLon = flow.get('fence_min_lon') || global.get('fence_min_lon') || -57.9600;\nvar fenceMaxLon = flow.get('fence_max_lon') || global.get('fence_max_lon') || -57.9450;\n\nvar isInside = (lat >= fenceMinLat && lat <= fenceMaxLat &&\n               lon >= fenceMinLon && lon <= fenceMaxLon);\n\nvar statusIcon = isInside ? '🟢' : '🔴';\nvar statusText = isInside ? 'DENTRO del perímetro' : 'FUERA del perímetro';\nvar isMuted = flow.get('muted_' + deviceId) || global.get('muted_' + deviceId) || false;\nvar muteText = isMuted ? '🔕 Alertas: *SILENCIADAS*' : '🔔 Alertas: *ACTIVAS*';\n\nvar mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lon;\n\nvar text = '🐄 *Detalle del Módulo:* `' + deviceId + '`\\n\\n';\ntext += statusIcon + ' Estado: *' + statusText + '*\\n';\ntext += muteText + '\\n\\n';\ntext += '📍 Ubicación:\\n';\ntext += '[🗺️ Ver en Google Maps](' + mapsUrl + ')\\n\\n';\ntext += '🔋 Batería: ' + (r.battery || 'N/A') + '%\\n';\ntext += '📶 RSSI: ' + (r.rssi || 'N/A') + ' dBm\\n';\ntext += '📶 SNR: ' + (r.snr || 'N/A') + '\\n';\ntext += '⏱️ Último ciclo: #' + (r.wake_count || 'N/A');\n\nvar keyboard = [\n    [{ text: isMuted ? '🔔 Activar Alertas' : '🔕 Silenciar Alertas', callback_data: '/toggle_mute_' + deviceId }]\n];\n\nmsg.payload = {\n    chatId: chatId,\n    type: 'message',\n    content: text,\n    options: { parse_mode: 'Markdown', disable_web_page_preview: false, reply_markup: JSON.stringify({ inline_keyboard: keyboard }) }\n};\nreturn msg;",
         "outputs": 1,
-        "x": 870,
+        "x": 1000,
         "y": 380,
-        "wires": [["tg_sender_detalle"]]
+        "wires": [
+            [
+                "tg_sender_detalle"
+            ]
+        ]
     },
     {
         "id": "tg_sender_detalle",
@@ -438,9 +529,11 @@
         "bot": "telegram_bot_config",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 1100,
-        "y": 380,
-        "wires": [[]]
+        "x": 930,
+        "y": 300,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "tg_mqtt_fence_sync",
@@ -457,18 +550,24 @@
         "inputs": 0,
         "x": 150,
         "y": 480,
-        "wires": [["tg_store_fence"]]
+        "wires": [
+            [
+                "tg_store_fence"
+            ]
+        ]
     },
     {
         "id": "tg_store_fence",
         "type": "function",
         "z": "flow_tab_telegram",
         "name": "Guardar Fence en Flow Context",
-        "func": "var data = msg.payload;\nif (data.min_lat !== undefined) { flow.set('fence_min_lat', data.min_lat); global.set('fence_min_lat', data.min_lat); }\nif (data.max_lat !== undefined) { flow.set('fence_max_lat', data.max_lat); global.set('fence_max_lat', data.max_lat); }\nif (data.min_lon !== undefined) { flow.set('fence_min_lon', data.min_lon); global.set('fence_min_lon', data.min_lon); }\nif (data.max_lon !== undefined) { flow.set('fence_max_lon', data.max_lon); global.set('fence_max_lon', data.max_lon); }\nnode.status({fill:'green', shape:'dot', text:'Fence actualizado'});\nreturn null;",
+        "func": "var data = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : (msg.payload || {});\nif (data.min_lat !== undefined) { flow.set('fence_min_lat', data.min_lat); global.set('fence_min_lat', data.min_lat); }\nif (data.max_lat !== undefined) { flow.set('fence_max_lat', data.max_lat); global.set('fence_max_lat', data.max_lat); }\nif (data.min_lon !== undefined) { flow.set('fence_min_lon', data.min_lon); global.set('fence_min_lon', data.min_lon); }\nif (data.max_lon !== undefined) { flow.set('fence_max_lon', data.max_lon); global.set('fence_max_lon', data.max_lon); }\nif (data.vertices !== undefined || data.vertices_json !== undefined) {\n    var vJson = data.vertices_json || (typeof data.vertices === 'string' ? data.vertices : JSON.stringify(data.vertices));\n    flow.set('fence_vertices_json', vJson); global.set('fence_vertices_json', vJson);\n}\nnode.status({fill:'green', shape:'dot', text:'Fence actualizado'});\nreturn null;",
         "outputs": 1,
         "x": 410,
         "y": 480,
-        "wires": [[]]
+        "wires": [
+            []
+        ]
     },
     {
         "id": "tg_mqtt_fence_sync_2",
@@ -485,7 +584,99 @@
         "inputs": 0,
         "x": 170,
         "y": 540,
-        "wires": [["tg_store_fence"]]
+        "wires": [
+            [
+                "tg_store_fence"
+            ]
+        ]
+    },
+    {
+        "id": "tg_cmd_silenciar",
+        "type": "telegram command",
+        "z": "flow_tab_telegram",
+        "name": "Comando /silenciar",
+        "command": "/silenciar",
+        "bot": "telegram_bot_config",
+        "strict": false,
+        "outputs": 2,
+        "x": 190,
+        "y": 640,
+        "wires": [
+            [
+                "tg_handle_cmd_alertas"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "tg_cmd_alertas",
+        "type": "telegram command",
+        "z": "flow_tab_telegram",
+        "name": "Comando /alertas",
+        "command": "/alertas",
+        "bot": "telegram_bot_config",
+        "strict": false,
+        "outputs": 2,
+        "x": 200,
+        "y": 720,
+        "wires": [
+            [
+                "tg_handle_cmd_alertas"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "tg_handle_cmd_alertas",
+        "type": "function",
+        "z": "flow_tab_telegram",
+        "name": "Manejar /silenciar y /alertas",
+        "func": "var chatId = msg.originalMessage ? msg.originalMessage.chat.id : (msg.payload ? msg.payload.chatId : flow.get('tg_alertas_chatId'));\nvar rawText = (msg.originalMessage && msg.originalMessage.text) ? msg.originalMessage.text : (msg.payload && typeof msg.payload.content === 'string' ? msg.payload.content : '');\nvar arg = rawText.replace(/^\\/(silenciar|alertas)(?:@[^\\s]+)?\\s*/i, '').trim();\n\nif (arg !== '') {\n    var parts = arg.split(/\\s+/);\n    var devId = parts[0];\n    var action = parts[1] ? parts[1].toLowerCase() : null;\n\n    var current = flow.get('muted_' + devId) || global.get('muted_' + devId) || false;\n    var newState = !current;\n    if (action === 'on' || action === 'mute' || action === 'silenciar') newState = true;\n    else if (action === 'off' || action === 'unmute' || action === 'activar') newState = false;\n\n    flow.set('muted_' + devId, newState);\n    global.set('muted_' + devId, newState);\n\n    var text = newState ? \n        '🔕 *Alertas silenciadas* para el módulo `' + devId + '`.\\nNo recibirás notificaciones automáticas si sale del perímetro.' :\n        '🔔 *Alertas activadas* para el módulo `' + devId + '`.\\nRecibirás notificaciones si sale del perímetro.';\n\n    var keyboard = [\n        [{ text: newState ? '🔔 Activar Alertas' : '🔕 Silenciar Alertas', callback_data: '/toggle_mute_' + devId }],\n        [{ text: '📍 Ver Detalle de ' + devId, callback_data: '/detalle_' + devId }]\n    ];\n\n    msg.payload = {\n        chatId: chatId,\n        type: 'message',\n        content: text,\n        options: {\n            parse_mode: 'Markdown',\n            reply_markup: JSON.stringify({ inline_keyboard: keyboard })\n        }\n    };\n    return [null, msg];\n}\n\nflow.set('tg_alertas_chatId', chatId);\nmsg.query = 'SELECT last(\"latitude\") AS lat FROM \"cattle_position\" WHERE time > now() - 24h GROUP BY \"device_id\"';\nreturn [msg, null];",
+        "outputs": 2,
+        "x": 680,
+        "y": 580,
+        "wires": [
+            [
+                "tg_influx_query_alertas"
+            ],
+            [
+                "tg_sender_modulos"
+            ]
+        ]
+    },
+    {
+        "id": "tg_influx_query_alertas",
+        "type": "influxdb in",
+        "z": "flow_tab_telegram",
+        "influxdb": "influx_config",
+        "name": "Query Módulos Alertas",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "",
+        "x": 920,
+        "y": 680,
+        "wires": [
+            [
+                "tg_format_cmd_alertas"
+            ]
+        ]
+    },
+    {
+        "id": "tg_format_cmd_alertas",
+        "type": "function",
+        "z": "flow_tab_telegram",
+        "name": "Formatear Menú Alertas",
+        "func": "var results = msg.payload;\nvar chatId = flow.get('tg_alertas_chatId');\nvar devices = [];\n\nif (Array.isArray(results)) {\n    for (var i = 0; i < results.length; i++) {\n        var row = results[i];\n        var devId = '';\n        if (row.device_id) devId = row.device_id;\n        else if (row.tags && row.tags.device_id) devId = row.tags.device_id;\n        else if (row.name) devId = row.name;\n        if (devId && devices.indexOf(devId) === -1) {\n            devices.push(devId);\n        }\n    }\n}\nif (devices.indexOf('edge-01') === -1) {\n    devices.push('edge-01');\n}\n\nvar keyboard = [];\nfor (var j = 0; j < devices.length; j++) {\n    var d = devices[j];\n    var isMuted = flow.get('muted_' + d) || global.get('muted_' + d) || false;\n    var btnText = isMuted ? '🔕 ' + d + ' (SILENCIADO) ➔ 🔔 Activar' : '🔔 ' + d + ' (ACTIVO) ➔ 🔕 Silenciar';\n    keyboard.push([{ text: btnText, callback_data: '/toggle_mute_' + d }]);\n}\n\nvar text = '🔔 *Gestión de Alertas por Módulo*\\n\\n';\ntext += 'Seleccioná un módulo para silenciar 🔕 o activar 🔔 sus notificaciones de salida del perímetro:\\n\\n';\ntext += '💡 _Comando rápido:_ `/silenciar <modulo>`';\n\nmsg.payload = {\n    chatId: chatId,\n    type: 'message',\n    content: text,\n    options: {\n        parse_mode: 'Markdown',\n        reply_markup: JSON.stringify({ inline_keyboard: keyboard })\n    }\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 1350,
+        "y": 680,
+        "wires": [
+            [
+                "tg_sender_modulos"
+            ]
+        ]
     },
     {
         "id": "gps_combiner",
@@ -539,7 +730,7 @@
         "id": "fence_combiner",
         "type": "function",
         "z": "flow_tab_gps_sim",
-        "name": "Combinar L\u00edmites Geofence",
+        "name": "Combinar Límites Geofence",
         "func": "var min_lat = flow.get('fence_min_lat') || -34.9250;\nvar max_lat = flow.get('fence_max_lat') || -34.9150;\nvar min_lon = flow.get('fence_min_lon') || -57.9600;\nvar max_lon = flow.get('fence_max_lon') || -57.9450;\nif (msg.topic === 'min_lat') { flow.set('fence_min_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lat') { flow.set('fence_max_lat', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'min_lon') { flow.set('fence_min_lon', parseFloat(msg.payload)); return null; }\nif (msg.topic === 'max_lon') { flow.set('fence_max_lon', parseFloat(msg.payload)); return null; }\nmin_lat = flow.get('fence_min_lat') || -34.9250;\nmax_lat = flow.get('fence_max_lat') || -34.9150;\nmin_lon = flow.get('fence_min_lon') || -57.9600;\nmax_lon = flow.get('fence_max_lon') || -57.9450;\nmsg.payload = JSON.stringify({ min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon, timestamp: new Date().toISOString() });\nmsg.retain = true;\nnode.status({fill:'blue', shape:'dot', text:'Fence actualizado'});\nreturn msg;",
         "outputs": 1,
         "x": 440,
@@ -713,7 +904,7 @@
         "width": "6",
         "height": "1",
         "passthru": false,
-        "label": "\ud83d\udce1 Publicar Coordenada Simulada",
+        "label": "📡 Publicar Coordenada Simulada",
         "tooltip": "Publica lat/lon en MQTT con retain",
         "color": "",
         "bgcolor": "#2E7D32",
@@ -739,8 +930,8 @@
         "width": "6",
         "height": "1",
         "passthru": false,
-        "label": "\ud83d\udd32 Actualizar L\u00edmites Geofence",
-        "tooltip": "Publica los nuevos l\u00edmites del geofence por MQTT",
+        "label": "🔲 Actualizar Límites Geofence",
+        "tooltip": "Publica los nuevos límites del geofence por MQTT",
         "color": "",
         "bgcolor": "#1565C0",
         "icon": "fa-square-o",
@@ -754,13 +945,6 @@
                 "fence_combiner"
             ]
         ]
-    },
-    {
-        "id": "flow_tab_geofence_api",
-        "type": "tab",
-        "label": "API Geofence Per\u00edmetro",
-        "disabled": false,
-        "info": "API HTTP POST /api/update-fence desde Dashboard UI hacia MQTT geofence/config_update"
     },
     {
         "id": "http_in_update_fence",
@@ -784,18 +968,21 @@
         "type": "function",
         "z": "flow_tab_geofence_api",
         "name": "Validar & Empaquetar ESP32 Payload",
-        "func": "var body = msg.payload || {};\nvar vertices = body.vertices || [];\nif (!Array.isArray(vertices) || vertices.length < 3) {\n    msg.payload = { status: \"error\", message: \"Pol\u00edgono inv\u00e1lido: m\u00ednimo 3 v\u00e9rtices requeridos.\" };\n    msg.statusCode = 400;\n    return [null, msg];\n}\nvar min_lat = vertices[0].lat, max_lat = vertices[0].lat;\nvar min_lon = vertices[0].lon, max_lon = vertices[0].lon;\nfor (var i = 1; i < vertices.length; i++) {\n    if (vertices[i].lat < min_lat) min_lat = vertices[i].lat;\n    if (vertices[i].lat > max_lat) max_lat = vertices[i].lat;\n    if (vertices[i].lon < min_lon) min_lon = vertices[i].lon;\n    if (vertices[i].lon > max_lon) max_lon = vertices[i].lon;\n}\nvar esp32Payload = {\n    min_lat: Number(min_lat.toFixed(6)),\n    max_lat: Number(max_lat.toFixed(6)),\n    min_lon: Number(min_lon.toFixed(6)),\n    max_lon: Number(max_lon.toFixed(6))\n};\nvar mqttMsg = {\n    topic: \"geofence/config_update\",\n    payload: JSON.stringify(esp32Payload),\n    qos: 1,\n    retain: true\n};\nmsg.statusCode = 200;\nmsg.payload = {\n    status: \"success\",\n    message: \"Geofence actualizado con \" + vertices.length + \" v\u00e9rtices y publicado por MQTT.\",\n    topic: \"geofence/config_update\",\n    timestamp: Math.floor(Date.now() / 1000)\n};\nreturn [mqttMsg, msg];",
-        "outputs": 2,
+        "func": "var body = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : (msg.payload || {});\nvar vertices = body.vertices || [];\nif (!Array.isArray(vertices) || vertices.length < 3) {\n    msg.payload = { status: 'error', message: 'Polígono inválido: mínimo 3 vértices requeridos.' };\n    msg.statusCode = 400;\n    return [null, null, msg];\n}\nvar min_lat = vertices[0].lat, max_lat = vertices[0].lat;\nvar min_lon = vertices[0].lon, max_lon = vertices[0].lon;\nfor (var i = 1; i < vertices.length; i++) {\n    if (vertices[i].lat < min_lat) min_lat = vertices[i].lat;\n    if (vertices[i].lat > max_lat) max_lat = vertices[i].lat;\n    if (vertices[i].lon < min_lon) min_lon = vertices[i].lon;\n    if (vertices[i].lon > max_lon) max_lon = vertices[i].lon;\n}\nmin_lat = Number(min_lat.toFixed(6));\nmax_lat = Number(max_lat.toFixed(6));\nmin_lon = Number(min_lon.toFixed(6));\nmax_lon = Number(max_lon.toFixed(6));\n\nflow.set('fence_min_lat', min_lat); global.set('fence_min_lat', min_lat);\nflow.set('fence_max_lat', max_lat); global.set('fence_max_lat', max_lat);\nflow.set('fence_min_lon', min_lon); global.set('fence_min_lon', min_lon);\nflow.set('fence_max_lon', max_lon); global.set('fence_max_lon', max_lon);\nflow.set('fence_vertices_json', JSON.stringify(vertices)); global.set('fence_vertices_json', JSON.stringify(vertices));\n\nvar esp32Payload = { min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon };\nvar mqttMsg = { topic: 'geofence/config_update', payload: JSON.stringify(esp32Payload), qos: 1, retain: true };\n\nvar fields = { min_lat: min_lat, max_lat: max_lat, min_lon: min_lon, max_lon: max_lon, vertices_json: JSON.stringify(vertices), vertex_count: vertices.length };\nvar tags = { config_id: 'active' };\nvar influxMsg = { payload: [fields, tags] };\n\nmsg.statusCode = 200;\nmsg.payload = { status: 'success', message: 'Geofence (' + vertices.length + ' vértices) guardado en InfluxDB y MQTT.', topic: 'geofence/config_update', timestamp: Math.floor(Date.now() / 1000) };\nreturn [mqttMsg, influxMsg, msg];",
+        "outputs": 3,
         "timeout": "",
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 450,
-        "y": 140,
+        "x": 480,
+        "y": 180,
         "wires": [
             [
                 "mqtt_out_config_update"
+            ],
+            [
+                "influx_write_geofence_config"
             ],
             [
                 "http_resp_update_fence"
@@ -816,8 +1003,8 @@
         "correl": "",
         "expiry": "",
         "broker": "mqtt_broker_config",
-        "x": 790,
-        "y": 100,
+        "x": 810,
+        "y": 120,
         "wires": []
     },
     {
@@ -829,8 +1016,245 @@
         "headers": {
             "Content-Type": "application/json"
         },
-        "x": 770,
+        "x": 810,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "http_in_post_fence",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "POST /api/fence",
+        "url": "/api/fence",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 180,
+        "wires": [
+            [
+                "func_format_fence_mqtt"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_post_fence_nr",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "POST /api/node-red/api/update-fence",
+        "url": "/api/node-red/api/update-fence",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 220,
+        "wires": [
+            [
+                "func_format_fence_mqtt"
+            ]
+        ]
+    },
+    {
+        "id": "influx_write_geofence_config",
+        "type": "influxdb out",
+        "z": "flow_tab_geofence_api",
+        "influxdb": "influx_config",
+        "name": "Guardar en geofence_config",
+        "measurement": "geofence_config",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "database": "",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "",
+        "bucket": "",
+        "x": 820,
         "y": 180,
         "wires": []
+    },
+    {
+        "id": "http_in_get_fence_current",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "GET /api/fence/current",
+        "url": "/api/fence/current",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 360,
+        "wires": [
+            [
+                "func_query_fence_db"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_get_update_fence_current",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "GET /api/update-fence/current",
+        "url": "/api/update-fence/current",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 400,
+        "wires": [
+            [
+                "func_query_fence_db"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_get_fence_current_nr",
+        "type": "http in",
+        "z": "flow_tab_geofence_api",
+        "name": "GET /api/node-red/api/fence/current",
+        "url": "/api/node-red/api/fence/current",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 200,
+        "y": 440,
+        "wires": [
+            [
+                "func_query_fence_db"
+            ]
+        ]
+    },
+    {
+        "id": "func_query_fence_db",
+        "type": "function",
+        "z": "flow_tab_geofence_api",
+        "name": "Query geofence_config DB",
+        "func": "msg.query = 'SELECT last(\"min_lat\") as min_lat, last(\"max_lat\") as max_lat, last(\"min_lon\") as min_lon, last(\"max_lon\") as max_lon, last(\"vertices_json\") as vertices_json FROM \"geofence_config\"';\nreturn msg;",
+        "outputs": 1,
+        "x": 480,
+        "y": 400,
+        "wires": [
+            [
+                "influx_read_geofence_config"
+            ]
+        ]
+    },
+    {
+        "id": "influx_read_geofence_config",
+        "type": "influxdb in",
+        "z": "flow_tab_geofence_api",
+        "influxdb": "influx_config",
+        "name": "Leer geofence_config",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "",
+        "x": 780,
+        "y": 400,
+        "wires": [
+            [
+                "func_format_current_fence_resp"
+            ]
+        ]
+    },
+    {
+        "id": "func_format_current_fence_resp",
+        "type": "function",
+        "z": "flow_tab_geofence_api",
+        "name": "Formatear Respuesta Geofence",
+        "func": "msg.statusCode = 200;\nif (Array.isArray(msg.payload) && msg.payload.length > 0 && msg.payload[0].vertices_json) {\n    var row = msg.payload[0];\n    var vertices = [];\n    try { vertices = JSON.parse(row.vertices_json); } catch(e) {}\n    msg.payload = {\n        status: 'success',\n        fence: {\n            vertices: vertices,\n            min_lat: row.min_lat,\n            max_lat: row.max_lat,\n            min_lon: row.min_lon,\n            max_lon: row.max_lon\n        }\n    };\n} else {\n    var vJson = global.get('fence_vertices_json') || flow.get('fence_vertices_json');\n    if (vJson) {\n        var vertices = [];\n        try { vertices = JSON.parse(vJson); } catch(e){}\n        msg.payload = {\n            status: 'success',\n            fence: {\n                vertices: vertices,\n                min_lat: global.get('fence_min_lat'),\n                max_lat: global.get('fence_max_lat'),\n                min_lon: global.get('fence_min_lon'),\n                max_lon: global.get('fence_max_lon')\n            }\n        };\n    } else {\n        msg.payload = { status: 'error', message: 'No geofence configured yet in database' };\n        msg.statusCode = 404;\n    }\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 1050,
+        "y": 400,
+        "wires": [
+            [
+                "http_resp_get_fence_current"
+            ]
+        ]
+    },
+    {
+        "id": "http_resp_get_fence_current",
+        "type": "http response",
+        "z": "flow_tab_geofence_api",
+        "name": "HTTP Respuesta Current Fence",
+        "statusCode": "",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 1370,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "inject_init_fence_db",
+        "type": "inject",
+        "z": "flow_tab_geofence_api",
+        "name": "Auto Carga al Iniciar Node-RED",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 190,
+        "y": 560,
+        "wires": [
+            [
+                "func_build_init_query"
+            ]
+        ]
+    },
+    {
+        "id": "func_build_init_query",
+        "type": "function",
+        "z": "flow_tab_geofence_api",
+        "name": "Query Init Geofence",
+        "func": "msg.query = 'SELECT last(\"min_lat\") as min_lat, last(\"max_lat\") as max_lat, last(\"min_lon\") as min_lon, last(\"max_lon\") as max_lon, last(\"vertices_json\") as vertices_json FROM \"geofence_config\"';\nreturn msg;",
+        "outputs": 1,
+        "x": 460,
+        "y": 560,
+        "wires": [
+            [
+                "influx_read_init_geofence"
+            ]
+        ]
+    },
+    {
+        "id": "influx_read_init_geofence",
+        "type": "influxdb in",
+        "z": "flow_tab_geofence_api",
+        "influxdb": "influx_config",
+        "name": "Leer Init DB",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "",
+        "x": 670,
+        "y": 560,
+        "wires": [
+            [
+                "func_init_fence_from_db"
+            ]
+        ]
+    },
+    {
+        "id": "func_init_fence_from_db",
+        "type": "function",
+        "z": "flow_tab_geofence_api",
+        "name": "Restaurar Límites en Memoria",
+        "func": "if (Array.isArray(msg.payload) && msg.payload.length > 0) {\n    var row = msg.payload[0];\n    if (row.min_lat !== undefined) { flow.set('fence_min_lat', row.min_lat); global.set('fence_min_lat', row.min_lat); }\n    if (row.max_lat !== undefined) { flow.set('fence_max_lat', row.max_lat); global.set('fence_max_lat', row.max_lat); }\n    if (row.min_lon !== undefined) { flow.set('fence_min_lon', row.min_lon); global.set('fence_min_lon', row.min_lon); }\n    if (row.max_lon !== undefined) { flow.set('fence_max_lon', row.max_lon); global.set('fence_max_lon', row.max_lon); }\n    if (row.vertices_json !== undefined) { flow.set('fence_vertices_json', row.vertices_json); global.set('fence_vertices_json', row.vertices_json); }\n    node.status({fill:'green', shape:'dot', text:'Geofence cargado de DB: ' + row.min_lat + ',' + row.min_lon});\n} else {\n    node.status({fill:'yellow', shape:'ring', text:'Sin geofence en DB'});\n}\nreturn null;",
+        "outputs": 1,
+        "x": 900,
+        "y": 560,
+        "wires": [
+            []
+        ]
     }
 ]

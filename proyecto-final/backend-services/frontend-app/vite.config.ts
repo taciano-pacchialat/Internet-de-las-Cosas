@@ -20,6 +20,10 @@ export default defineConfig({
         target: 'http://localhost:1880',
         changeOrigin: true,
       },
+      '/api/update-fence': {
+        target: 'http://localhost:1880',
+        changeOrigin: true,
+      },
       '/api/history': {
         target: 'http://localhost:1880',
         changeOrigin: true,

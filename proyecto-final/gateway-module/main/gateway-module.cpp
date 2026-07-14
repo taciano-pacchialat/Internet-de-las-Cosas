@@ -97,38 +97,33 @@ static void __attribute__((unused)) enter_deep_sleep(void) {
 }
 
 // =============================================================================
-// PUNTO DE ENTRADA (app_main)
+// INICIALIZACIÓN DIFERIDA DE LORA (POST-WIFI)
 // =============================================================================
 
-extern "C" void app_main(void) {
-    ESP_LOGI(TAG, "=== Gateway Module - Iniciando (Modo Demostración en Vivo / Producción) ===");
+static bool s_lora_started = false;
+
+extern "C" void gateway_start_radio(void) {
+    if (s_lora_started) {
+        ESP_LOGI(TAG, "Radio LoRa ya inicializada, saltando.");
+        return;
+    }
+
+    ESP_LOGI(TAG, "=== Iniciando subsistema LoRa (post-WiFi) ===");
 
     uint32_t wakeup_causes = esp_sleep_get_wakeup_causes();
-    ESP_LOGI(TAG, "Wakeup causes bitmap: 0x%lx", (unsigned long)wakeup_causes);
 
-    // 1. Inicializar NVS (necesario para Wi-Fi)
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    // 2. Inicializar Administrador Wi-Fi (esp32-wifi-manager + SoftAP abierto)
-    wifi_service_init();
-
-    // 2. Inicializar LoRa
+    // 1. Inicializar radio SX1278
     if (!lora_init()) {
-        ESP_LOGE(TAG, "Fallo crítico inicializando LoRa, reiniciando...");
-        esp_restart();
+        ESP_LOGE(TAG, "Fallo crítico inicializando LoRa.");
+        return;
     }
 
-    // 3. Crear tarea FreeRTOS para procesamiento RX
+    // 2. Crear tarea FreeRTOS para procesamiento RX
     xTaskCreate(lora_rx_processing_task, "lora_rx_task", 8192, NULL, 5, &s_lora_rx_task_handle);
 
-    // 4. Configurar interrupción en el pin DIO0 (GPIO26)
+    // 3. Configurar interrupción en el pin DIO0
     gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_POSEDGE; // Flanco de subida cuando llega paquete LoRa
+    io_conf.intr_type = GPIO_INTR_POSEDGE;
     io_conf.pin_bit_mask = (1ULL << LORA_DIO0);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
@@ -141,14 +136,37 @@ extern "C" void app_main(void) {
     }
     gpio_isr_handler_add((gpio_num_t)LORA_DIO0, lora_dio0_isr_handler, NULL);
 
-    // 5. Poner LoRa en modo escucha continua
+    // 4. Poner LoRa en modo escucha continua
     lora_set_rx_and_prepare_sleep();
 
-    // 6. Si despertamos por ext0 (llegó un paquete mientras dormía), notificar inmediatamente
+    s_lora_started = true;
+    ESP_LOGI(TAG, "=== Subsistema LoRa activo. Escuchando paquetes del Edge. ===");
+
     if (wakeup_causes & (1UL << ESP_SLEEP_WAKEUP_EXT0)) {
         ESP_LOGI(TAG, "Despertado por ext0 (DIO0). Disparando tarea FreeRTOS...");
         xTaskNotifyGive(s_lora_rx_task_handle);
-    } else {
-        ESP_LOGI(TAG, "Boot inicial / Modo continuo activo en FreeRTOS. Esperando paquetes LoRa...");
     }
+}
+
+// =============================================================================
+// PUNTO DE ENTRADA (app_main)
+// =============================================================================
+
+extern "C" void app_main(void) {
+    ESP_LOGI(TAG, "=== Gateway Module - Iniciando ===");
+
+    // 1. Inicializar NVS (necesario para Wi-Fi)
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    // 2. Inicializar Administrador Wi-Fi (SoftAP abierto + WiFi Manager)
+    //    LoRa se inicializará DESPUÉS en el callback on_wifi_connected
+    //    para evitar brownout por consumo simultáneo WiFi + LoRa.
+    wifi_service_init();
+
+    ESP_LOGI(TAG, "Esperando conexión Wi-Fi. LoRa se activará tras conectar.");
 }

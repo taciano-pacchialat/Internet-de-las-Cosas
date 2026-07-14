@@ -8,6 +8,8 @@
 #include "cJSON.h"
 #include "gateway_config.h"
 #include "mdns.h"
+#include "esp_netif.h"
+#include "lwip/sockets.h"
 
 static const char* TAG = "MQTT_SVC";
 
@@ -33,8 +35,169 @@ static volatile bool has_new_fence = false;
  * ("mqtt://iotbroker.local:1883").
  * =============================================================================
  */
+/**
+ * Escucha beacons UDP del servicio de descubrimiento del backend.
+ * El beacon tiene el formato: "GEOFENCE_MQTT:<IP>:<PUERTO>"
+ * También envía una solicitud activa "GEOFENCE_DISCOVER" por si el beacon
+ * aún no fue emitido cuando el gateway arrancó.
+ */
+static bool discover_broker_via_udp(char* out_uri, size_t uri_len) {
+    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock < 0) {
+        ESP_LOGW(TAG, "UDP discovery: no se pudo crear socket");
+        return false;
+    }
+
+    // Permitir recibir broadcasts
+    int broadcast_en = 1;
+    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast_en, sizeof(broadcast_en));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &broadcast_en, sizeof(broadcast_en));
+
+    // Bind al puerto del beacon
+    struct sockaddr_in bind_addr;
+    memset(&bind_addr, 0, sizeof(bind_addr));
+    bind_addr.sin_family = AF_INET;
+    bind_addr.sin_port = htons(DISCOVERY_BEACON_PORT);
+    bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(sock, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
+        ESP_LOGW(TAG, "UDP discovery: fallo en bind al puerto %d", DISCOVERY_BEACON_PORT);
+        close(sock);
+        return false;
+    }
+
+    // Enviar solicitud activa de descubrimiento
+    struct sockaddr_in bcast_addr;
+    memset(&bcast_addr, 0, sizeof(bcast_addr));
+    bcast_addr.sin_family = AF_INET;
+    bcast_addr.sin_port = htons(DISCOVERY_BEACON_PORT);
+    bcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    const char* discover_msg = "GEOFENCE_DISCOVER";
+    sendto(sock, discover_msg, strlen(discover_msg), 0,
+           (struct sockaddr*)&bcast_addr, sizeof(bcast_addr));
+
+    ESP_LOGI(TAG, "UDP discovery: escuchando beacon en puerto %d (max %d ms)...",
+             DISCOVERY_BEACON_PORT, DISCOVERY_LISTEN_TIMEOUT_MS);
+
+    // Configurar timeout de recepción
+    struct timeval tv;
+    tv.tv_sec = DISCOVERY_LISTEN_TIMEOUT_MS / 1000;
+    tv.tv_usec = (DISCOVERY_LISTEN_TIMEOUT_MS % 1000) * 1000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    char rx_buf[128] = {0};
+    struct sockaddr_in src_addr;
+    socklen_t src_len = sizeof(src_addr);
+
+    bool found = false;
+    // Escuchar hasta timeout, ignorando nuestros propios paquetes
+    while (!found) {
+        int len = recvfrom(sock, rx_buf, sizeof(rx_buf) - 1, 0,
+                           (struct sockaddr*)&src_addr, &src_len);
+        if (len <= 0) break;  // Timeout o error
+
+        rx_buf[len] = '\0';
+
+        // Verificar magic header: "GEOFENCE_MQTT:<IP>:<PORT>"
+        if (strncmp(rx_buf, DISCOVERY_BEACON_MAGIC, strlen(DISCOVERY_BEACON_MAGIC)) == 0) {
+            char broker_ip[20] = {0};
+            int broker_port = 1883;
+            if (sscanf(rx_buf, "GEOFENCE_MQTT:%19[^:]:%d", broker_ip, &broker_port) >= 1) {
+                snprintf(out_uri, uri_len, "mqtt://%s:%d", broker_ip, broker_port);
+                ESP_LOGI(TAG, "UDP discovery: broker MQTT encontrado → %s", out_uri);
+                found = true;
+            }
+        }
+    }
+
+    close(sock);
+    return found;
+}
+
+/**
+ * Escanea la subred local del gateway buscando un broker MQTT (puerto 1883).
+ * Intenta conexiones TCP rápidas con timeout corto a un rango de IPs.
+ * Retorna true si encuentra un broker, escribiendo la URI en out_uri.
+ */
+static bool scan_subnet_for_mqtt(char* out_uri, size_t uri_len) {
+    // Obtener la IP del gateway desde la interfaz STA
+    esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif == NULL) {
+        ESP_LOGW(TAG, "Subnet scan: no se pudo obtener interfaz STA");
+        return false;
+    }
+
+    esp_netif_ip_info_t ip_info;
+    if (esp_netif_get_ip_info(netif, &ip_info) != ESP_OK) {
+        ESP_LOGW(TAG, "Subnet scan: no se pudo obtener IP info");
+        return false;
+    }
+
+    // Extraer los 3 primeros octetos de la IP del gateway
+    uint32_t my_ip = ntohl(ip_info.ip.addr);
+    uint8_t oct1 = (my_ip >> 24) & 0xFF;
+    uint8_t oct2 = (my_ip >> 16) & 0xFF;
+    uint8_t oct3 = (my_ip >> 8) & 0xFF;
+    uint8_t my_oct4 = my_ip & 0xFF;
+
+    ESP_LOGI(TAG, "Subnet scan: escaneando %d.%d.%d.1-%d buscando MQTT en puerto 1883...",
+             oct1, oct2, oct3, MQTT_SUBNET_SCAN_MAX);
+
+    for (int host = 1; host <= MQTT_SUBNET_SCAN_MAX; host++) {
+        if (host == (int)my_oct4) continue;  // Saltar nuestra propia IP
+
+        // Construir IP candidata
+        char candidate_ip[20];
+        snprintf(candidate_ip, sizeof(candidate_ip), "%d.%d.%d.%d", oct1, oct2, oct3, host);
+
+        // Intentar conexión TCP rápida al puerto 1883
+        int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (sock < 0) continue;
+
+        // Configurar socket como non-blocking para timeout rápido
+        int flags = fcntl(sock, F_GETFL, 0);
+        fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+        struct sockaddr_in dest_addr;
+        memset(&dest_addr, 0, sizeof(dest_addr));
+        dest_addr.sin_family = AF_INET;
+        dest_addr.sin_port = htons(1883);
+        inet_aton(candidate_ip, &dest_addr.sin_addr);
+
+        connect(sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
+
+        // Esperar con select() usando timeout corto
+        fd_set write_fds;
+        FD_ZERO(&write_fds);
+        FD_SET(sock, &write_fds);
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = MQTT_SUBNET_SCAN_TIMEOUT_MS * 1000;  // Convertir ms a us
+
+        int result = select(sock + 1, NULL, &write_fds, NULL, &tv);
+        close(sock);
+
+        if (result > 0) {
+            // Verificar que la conexión fue exitosa (no solo que select() retornó)
+            // Si select retornó writable, hay un host escuchando en ese puerto
+            snprintf(out_uri, uri_len, "mqtt://%s:1883", candidate_ip);
+            ESP_LOGI(TAG, "Subnet scan: broker MQTT encontrado en %s", out_uri);
+            return true;
+        }
+    }
+
+    ESP_LOGW(TAG, "Subnet scan: no se encontró broker MQTT en la subred %d.%d.%d.x",
+             oct1, oct2, oct3);
+    return false;
+}
+
 static const char* resolve_mqtt_uri(void) {
-    // 1. Pequeño retardo (600 ms) tras IP_EVENT_STA_GOT_IP para estabilizar IGMP/multicast en el router
+    // 1. [PRIORIDAD] Auto-descubrimiento por beacon UDP (funciona en hotspot y router)
+    if (discover_broker_via_udp(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri))) {
+        return s_dynamic_mqtt_uri;
+    }
+
+    // 2. Pequeño retardo (600 ms) tras IP_EVENT_STA_GOT_IP para estabilizar IGMP/multicast en el router
     vTaskDelay(pdMS_TO_TICKS(600));
 
     // 2. Intentar auto-descubrimiento de servicios mDNS PTR (_mqtt._tcp.local)
@@ -84,7 +247,14 @@ static const char* resolve_mqtt_uri(void) {
         }
     }
 
-    // 5. Si no hay publicidad mDNS en la red, usar limpiamente la URI por defecto configurada
+    // 5. [NUEVO] Escaneo de subred local: intento de auto-descubrimiento por TCP connect
+    //    Útil en redes hotspot donde mDNS no funciona (sin multicast).
+    if (scan_subnet_for_mqtt(s_dynamic_mqtt_uri, sizeof(s_dynamic_mqtt_uri))) {
+        return s_dynamic_mqtt_uri;
+    }
+
+    // 6. Si no hay publicidad mDNS en la red NI se encontró broker por escaneo,
+    //    usar limpiamente la URI por defecto configurada
     ESP_LOGI(TAG, "Usando broker MQTT configurado por defecto para la red: %s", MQTT_BROKER_URI);
     return MQTT_BROKER_URI;
 }

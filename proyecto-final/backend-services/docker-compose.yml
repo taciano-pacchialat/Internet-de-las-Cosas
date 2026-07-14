@@ -52,3 +52,14 @@ services:
       - influxdb
     restart: unless-stopped
 
+  discovery:
+    build:
+      context: ./discovery
+      dockerfile: Dockerfile
+    container_name: geofence-discovery
+    network_mode: host
+    environment:
+      - DISCOVERY_BEACON_PORT=19883
+      - MQTT_BROKER_PORT=1883
+      - DISCOVERY_INTERVAL_SEC=3.0
+    restart: unless-stopped

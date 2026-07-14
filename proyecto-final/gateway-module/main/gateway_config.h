@@ -43,6 +43,15 @@
 #define MQTT_TOPIC_FENCE_UPDATE  "geofence/fence_update"
 #define MQTT_SUBSCRIBE_WAIT_MS   3000   // Espera máxima para recibir mensajes retenidos
 
+// --- Auto-descubrimiento MQTT por escaneo de subred (Hotspot Mode) ---
+#define MQTT_SUBNET_SCAN_MAX         30    // Escanear desde .1 hasta .30
+#define MQTT_SUBNET_SCAN_TIMEOUT_MS  300   // Timeout por IP candidata (ms)
+
+// --- Auto-descubrimiento MQTT por UDP Beacon ---
+#define DISCOVERY_BEACON_PORT       19883   // Puerto UDP del beacon
+#define DISCOVERY_LISTEN_TIMEOUT_MS 6000    // Tiempo máximo de escucha (2 ciclos de beacon @ 3s)
+#define DISCOVERY_BEACON_MAGIC      "GEOFENCE_MQTT"
+
 // =============================================================================
 // PINOUT VSPI — ESP32 Clásico (Gateway Module)
 // =============================================================================

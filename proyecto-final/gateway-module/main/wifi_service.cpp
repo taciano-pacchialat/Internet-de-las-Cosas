@@ -10,6 +10,9 @@
 
 static const char* TAG = "WIFI_MGR";
 
+// Función definida en gateway-module.cpp — inicializa LoRa post-WiFi
+extern "C" void gateway_start_radio(void);
+
 static volatile bool s_wifi_connected = false;
 static bool s_mdns_initialized = false;
 
@@ -39,6 +42,10 @@ static void on_wifi_connected(void* param) {
     // Inicializar el cliente MQTT de forma asíncrona tras obtener red local
     ESP_LOGI(TAG, "Iniciando cliente MQTT asíncrono...");
     mqtt_service_init_async();
+
+    // Inicializar subsistema LoRa DESPUÉS de WiFi+MQTT estable
+    // para evitar brownout por consumo simultáneo.
+    gateway_start_radio();
 }
 
 void wifi_service_init(void) {

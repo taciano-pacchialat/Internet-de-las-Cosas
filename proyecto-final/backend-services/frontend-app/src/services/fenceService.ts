@@ -13,7 +13,10 @@ export interface FenceUpdateResponse {
 
 export async function fetchCurrentGeofence(): Promise<[number, number][] | null> {
   try {
-    const response = await fetch('/api/fence/current');
+    let response = await fetch('/api/fence/current');
+    if (!response.ok) {
+      response = await fetch('/api/node-red/api/fence/current');
+    }
     if (!response.ok) return null;
     const data = await response.json();
     if (data && data.fence && Array.isArray(data.fence.vertices) && data.fence.vertices.length >= 3) {
