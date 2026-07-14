@@ -35,6 +35,7 @@ services:
       - ./nodered/data:/data
     environment:
       - TZ=America/Argentina/Buenos_Aires
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     depends_on:
       - mosquitto
       - influxdb
