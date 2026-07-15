@@ -1,0 +1,13 @@
+\section{Introducción y Objetivos}
+
+La gestión y localización de ganado bovino en extensiones rurales extensas presenta restricciones operativas críticas vinculadas a la ausencia de infraestructura eléctrica y de cobertura de telefonía celular comercial. Los sistemas tradicionales de delimitación física con alambrado perimetral o boyeros eléctricos incurren en elevados costos de mantenimiento e imposibilitan la modificación dinámica del área de pastoreo.
+
+El presente proyecto implementa una plataforma de delimitación geográfica virtual por software (\textit{geofencing}) integrada con telemetría de posicionamiento por satélite y un enlace de comunicación \textit{LoRa}. El sistema permite monitorear las coordenadas de cada animal y generar alertas ante salidas perimetrales o fallas de conectividad, operando de forma autónoma sin depender de redes de terceros en el campo.
+
+\subsection{Objetivos del Sistema}
+\begin{description}
+    \item[Desarrollo de nodo de borde de bajo consumo:] Diseñar un collar móvil autónomo basado en el microcontrolador ESP32 con receptor GPS simulado y transceptor LoRa SX1278 (433~MHz), operando bajo ciclos temporizados en modo \textit{Deep Sleep} para maximizar la vida útil de la batería.
+    \item[Enrutamiento local:] Implementar un nodo de \textit{Gateway} capaz de capturar paquetes de LoRa e inyectarlos a una red Wi-Fi local mediante el protocolo MQTT.
+    \item[Procesamiento espacial:] El cálculo algebraico del perímetro se realiza en el microcontrolador del collar, ejecutando el algoritmo de pertenencia poligonal, que luego se sincroniza con un servidor central local (Node-RED) con acceso a almacenamiento histórico y temporal de InfluxDB.
+    \item[Control remoto:] Proveer una interfaz web interactiva con representación en mapa para visualización de telemetría y edición paramétrica de límites del Geofence, complementada con un bot bidireccional de Telegram para alertas e interrogación de estado.
+\end{description}

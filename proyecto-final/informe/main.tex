@@ -1,0 +1,38 @@
+\documentclass[11pt,a4paper]{article}
+
+\input{config}
+
+\begin{document}
+
+% ==============================================================================
+% ENCABEZADO Y TÍTULO COMPACTO (Máximo media carilla según especificación)
+% ==============================================================================
+\begin{center}
+    {\bfseries\large UNIVERSIDAD NACIONAL DE LA PLATA} \\[0.1cm]
+    {\bfseries\normalsize FACULTAD DE INFORMÁTICA --- INTERNET DE LAS COSAS 2026} \\[0.3cm]
+    \rule{\textwidth}{0.8pt} \\[0.25cm]
+    \vspace{0.2cm}
+    {\bfseries\LARGE Sistema de Geofencing para Ganado con Enlace LoRa de Bajo Consumo y Alertas} \\[0.2cm]
+    \rule{\textwidth}{0.4pt} \\[0.25cm]
+    {\bfseries Autores:} Cid De La Paz, Alejo --- Pacchialat, Taciano \\[0.3cm]
+\end{center}
+
+\begin{abstract}
+\noindent El presente informe técnico describe el diseño, arquitectura e implementación de una plataforma de monitoreo de ubicación y delimitación perimetral virtual (geofencing) para ganado bovino en entornos rurales sin cobertura de telefonía celular. El sistema articula nodos móviles de borde (collares) basados en microcontroladores ESP32 con receptores GPS y transceptores LoRa SX1278 a 433~MHz operando bajo ciclos estrictos de temporización en \textit{Deep Sleep}. Los paquetes de telemetría son capturados por una compuerta de enlace (\textit{Gateway}) ESP32-CAM y retransmitidos vía MQTT e InfluxDB hacia un servidor local Node-RED y contenedores Docker. La verificación espacial punto-en-polígono (\textit{Ray-Casting}) y el control paramétrico se gestionan desde una interfaz de monitoreo y un bot bidireccional de Telegram con alertas proactivas.
+\end{abstract}
+
+\vspace{0.2cm}
+\rule{\textwidth}{0.4pt}
+\vspace{0.2cm}
+
+% ==============================================================================
+% SECCIONES MODULARES (\input)
+% ==============================================================================
+\input{secciones/01_introduccion}
+\input{secciones/02_arquitectura}
+\input{secciones/03_firmware}
+\input{secciones/04_backend_api}
+\input{secciones/05_frontend_tg}
+\input{secciones/06_conclusiones}
+
+\end{document}

@@ -1,0 +1,63 @@
+% --- Paquetes de Idioma y Codificación ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+
+% --- Geometría de Página ---
+\usepackage[top=2.2cm, bottom=2.2cm, left=2.2cm, right=2.2cm]{geometry}
+
+% --- Tipografía y Párrafos ---
+\usepackage{setspace}
+\setstretch{1.08}
+\usepackage{parskip}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+% --- Paquetes Matemáticos ---
+\usepackage{amsmath,amssymb,amsfonts}
+
+% --- Tablas Técnicas ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+
+% --- Gráficos y Figuras ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+% --- Listas ---
+\usepackage{enumitem}
+\setlist[itemize]{itemsep=0.2em, topsep=0.3em, parsep=0pt}
+\setlist[enumerate]{itemsep=0.2em, topsep=0.3em, parsep=0pt}
+\setlist[description]{itemsep=0.2em, topsep=0.3em, parsep=0pt}
+
+% --- Encabezados y Pies de Página (Fancyhdr) ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\bfseries Universidad Nacional de La Plata (UNLP)}
+\fancyhead[R]{\small\bfseries Trabajo Integrador Final - IoT 2026}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Títulos de Secciones ---
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
+
+% --- Enlaces y Referencias ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!65!black,
+    urlcolor=blue!65!black,
+    citecolor=blue!65!black
+}

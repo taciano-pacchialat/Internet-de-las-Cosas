@@ -1,0 +1,5 @@
+\section{Conclusiones y Trabajo Futuro}
+
+El desarrollo y validación de este sistema demostró la viabilidad técnica de implementar monitoreo geoespacial sin cobertura celular. La arquitectura dividida en tres capas permitió aislar las restricciones energéticas del collar (Módulo Edge) mediante un enlace de radiofrecuencia LoRa en 433~MHz hacia un Módulo Gateway, el cual procesa y deriva la telemetría a una infraestructura centralizada basada en Docker, Node-RED e InfluxDB.
+
+Desde la perspectiva algorítmica y de firmware, se resolvieron problemas críticos de concurrencia y consumo. El uso de la memoria estática del reloj de tiempo real \texttt{RTC\_DATA\_ATTR} conservó el contexto de operación durante los ciclos de \textit{Deep Sleep}. Asimismo, la inyección de marcas de tiempo en el servidor y la optimización por\textit{Bounding Box} en el cálculo de del posicionamiento en la cerca aseguraron una detección de fugas certera.

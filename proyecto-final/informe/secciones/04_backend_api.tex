@@ -1,0 +1,32 @@
+\section{Backend}
+
+El procesamiento de servidor y el almacenamiento de datos operan sobre un ecosistema de microservicios contenidos mediante Docker en un servidor local. 
+
+\subsection{Stack Docker}
+
+El servidor ejecuta cuatro contenedores interconectados en una red virtual privada aislada:
+\begin{description}
+    \item[Broker Mosquitto:] Actúa como concentrador MQTT local recibiendo las publicaciones del Gateway en el tópico \texttt{geofence/heartbeat} y notificando cambios perimetrales en \texttt{geofence/config\_update}.
+    \item[Base de Datos InfluxDB:] almacena las posiciones históricas en la medición \texttt{cattle\_position} y la configuración del perímetro en \texttt{geofence\_config}.
+    \item[Flujos Node-RED:] enrutamiento de paquetes, decodificación JSON, validación espacial de la geofence y exposición de endpoints.
+\end{description}
+
+
+\subsection{APIs}
+
+La configuración del cerco virtual se almacena de manera persistente dentro de la medición \texttt{geofence\-\_config} de InfluxDB, conservando el cerco activo ante reinicios del servidor o de los servicios de Docker. La Tabla~\ref{tab:api_rest} detalla las especificaciones técnicas de los puntos de entrada expuestos por Node-RED y enrutados a través de Nginx.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l l >{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Método} & \textbf{Ruta (\texttt{/api/})} & \textbf{Carga Útil (Payload)} & \textbf{Comportamiento Técnico y Persistencia} \\ \midrule
+\textbf{GET} & \texttt{fence/current} & \textit{Ninguno} & Consulta el último registro en \texttt{geofence\_config} de InfluxDB. Retorna objeto con \texttt{vertices} JSON y coordenadas del bounding box. Si no hay datos, emite polígono por defecto. \\ \addlinespace
+\textbf{POST} & \texttt{update-fence} & JSON: \newline \texttt{\{vertices: [\{lat, lng\}]\}} & Valida arreglo de coordenadas, calcula límites geográficos mínimos y máximos (\texttt{min/max lat/lon}), inserta nuevo punto en \texttt{geofence\_config} y publica notificación en tópico MQTT \texttt{geofence/config\_update}. \\ \addlinespace
+\textbf{POST} & \texttt{fence} & JSON: \newline \texttt{\{vertices: [\{lat, lng\}]\}} & Endpoint de compatibilidad directa con las vistas de edición web, enrutado al manejador transaccional de \texttt{update-fence}. \\ \bottomrule
+\end{tabularx}
+\caption{Especificación APIs.}
+\label{tab:api_rest}
+\end{table}
+

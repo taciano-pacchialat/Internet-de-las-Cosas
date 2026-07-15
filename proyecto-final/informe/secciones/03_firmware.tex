@@ -1,0 +1,62 @@
+\section{Desarrollo y Arquitectura del Firmware}
+
+El firmware del sistema de geofencing está estructurado en dos proyectos independientes desarrollados en C++ bajo el framework de Espressif (\textit{ESP-IDF}): el módulo móvil de borde (\texttt{edge-module}) incrustado en el collar del ganado y el módulo base de enlace (\texttt{gateway-module}). La arquitectura de ambos nodos prioriza la estabilidad de ejecución continua y el manejo eficiente de recursos temporales y de memoria.
+
+\subsection{Módulo Edge}
+
+El collar opera bajo restricciones energéticas. Para maximizar su autonomía sin perder capacidad de respuesta o trazabilidad espacial, el firmware implementa una máquina de estados temporizada regida por el controlador del Reloj de Tiempo Real (RTC) del ESP32. En el prototipo se alimentó al MCU mediante USB hacia la computadora, pero se realizó con la intención de tener una gran autonomía si fuera alimentado con baterías.
+
+
+Durante la mayor parte de su ciclo operativo, el microcontrolador permanece en estado de bajo consumo profundo (\textit{Deep Sleep}), donde se desenergizan los núcleos de CPU, el controlador de radio LoRa y los periféricos estándar, reduciendo el consumo total a ($\mu$A). Para mantener la coherencia de telemetría entre ciclos de sueño sin acceder al almacenamiento no volátil Flash (lo que incrementaría el consumo y desgastaría el medio), las variables de control y contadores de secuencia se almacenan en la memoria estática lenta del RTC (\texttt{RTC\_DATA\_ATTR}). En este dominio de memoria persisten el contador incremental de despertares (\texttt{boot\_count}), las últimas coordenadas validadas y el estado actual de alarma del cerco.
+
+
+El temporizador del RTC activa el sistema periódicamente cada 30~segundos. La Figura~\ref{fig:edge_states} ilustra el flujo secuencial de tareas ejecutado en cada ciclo de \textit{Wakeup}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 2.5cm,
+    state/.style={rectangle, rounded corners=6pt, draw=black, thick, fill=gray!8, text width=3.3cm, align=center, minimum height=1.2cm, font=\footnotesize\bfseries},
+    sleep/.style={rectangle, rounded corners=6pt, draw=black, thick, fill=blue!8, text width=3.3cm, align=center, minimum height=1.2cm, font=\footnotesize\bfseries},
+    arrow/.style={-{Stealth[scale=1.0]}, thick}
+]
+    \node[sleep] (deepsleep) {Deep Sleep};
+    \node[state, right=of deepsleep] (wakeup) {Despertar por RTC};
+    \node[state, right=of wakeup] (gps) {Adquisición GPS \\(Simulado)};
+    
+    \node[state, below=0.9cm of gps] (tx) {Transmisión LoRa};
+    \node[state, left=of tx] (rx) {Ventana Escucha LoRa (2~s)};
+    \node[state, left=of rx] (downlink) {Procesar Downlink};
+
+    \draw[arrow] (deepsleep) -- node[above, font=\scriptsize] {Timer RTC} (wakeup);
+    \draw[arrow] (wakeup) -- (gps);
+    \draw[arrow] (gps) -- node[right, font=\scriptsize] {} (tx);
+    \draw[arrow] (tx) -- node[above, font=\scriptsize] {Abre Ventana} (rx);
+    \draw[arrow] (rx) -- node[above, font=\scriptsize] {Trama RX OK} (downlink);
+    \draw[arrow] (downlink) -- node[left, font=\scriptsize] {Ajusta Estado} (deepsleep);
+    \draw[arrow] (rx) -- node[pos=0.3, right, font=\scriptsize] {Timeout 2s} (deepsleep);
+
+\end{tikzpicture}
+\caption{Diagrama de estados del módulo de borde.}
+\label{fig:edge_states}
+\end{figure}
+
+Al salir de \textit{Deep Sleep}, la secuencia operativa se desarrollade la siguiente manera:
+\begin{enumerate}
+    \item \textbf{Inicialización:} El procesador verifica la causa de activación del RTC y recupera las variables de estado desde el registro \texttt{RTC\_DATA\_ATTR}.
+    \item \textbf{Adquisición:} Se habilita la interfaz UART para capturar las coordenadas simuladas. Si el módulo obtiene una solución de posición válida, extrae la longitud y latitud. Si se agota el tiempo máximo de espera sin fijación, el sistema utiliza la última coordenada conocida y marca un indicador de telemetría degradada.
+    \item \textbf{Transmisión:} El procesador empaqueta los datos posicionales, el indicador de batería, el contador de secuencias y el estado local en una estructura y ordena su emisión a través del bus SPI hacia el transceptor LoRa SX1278.
+    \item \textbf{Ventana de recepción:} Tras finalizar la transmisión del paquete, el transceptor conmuta inmediatamente a modo recepción durante una ventana temporal estricta de $2000$~milisegundos ($2.0$~segundos). Esta ventana sincronizada permite que el Gateway transmita actualizaciones de parámetros del cerco sin obligar al collar a mantener el receptor encendido de forma permanente. Si el transceptor detecta un paquete entrante válida durante la ventana, la lógica interpreta el comando. Si la orden instruye una alarma perimetral, se envía en el próximo ciclo las nuevas coordenadas y el estado de FUERA.
+    \item \textbf{Retorno:} Concluida la ventana de recepción y ejecutada la actuación local, el microcontrolador reconfigura el temporizador de alarma del RTC y desenergiza todos los buses, retornando al modo \textit{Deep Sleep}.
+\end{enumerate}
+
+\subsection{Módulo Gateway}
+
+El módulo Gateway  opera de forma estacionaria y alimentado de forma continua. Su responsabilidad consiste en escuchar permanentemente el canal LoRa, recibir las ráfagas de telemetría entrantes, formatear las tramas en objetos JSON estructurados y publicarlos a través de Wi-Fi hacia el broker MQTT.
+
+El transceptor SX1278 notifica la llegada de un paquete completo activando la línea digital de interrupción externa \texttt{DIO0}. Para garantizar ejecución la ISR se restringe estrictamente a la memoria interna RAM del procesador mediante el atributo de compilador \texttt{IRAM\_ATTR}, prohibiendo accesos indirectos a la memoria Flash externa que podrían generar demoras por fallas de caché. La ISR se limita a limpiar el flag de interrupción del hardware del radio y emitir una notificación directa hacia una tarea dedicada de FreeRTOS de alta prioridad.
+
+
+El planificador del FreeRTOS desbloquea de inmediato la tarea manejadora de recepción LoRa al recibir la señal de la ISR. Esta tarea dedicada realiza la lectura de los registros del transceptor vía SPI, extrae la carga útil del paquete y deposita la estructura resultante en una cola de mensajes segura para concurrencia.
+
+De forma concurrente, una segunda tarea de comunicación de red extrae los paquetes del búfer, los serializa y los transmite mediante MQTT hacia el broker.

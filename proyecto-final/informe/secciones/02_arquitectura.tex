@@ -1,0 +1,59 @@
+\section{Arquitectura General y Selección de Hardware}
+
+La topología del sistema adopta una estructura jerárquica de tres capas: capa de borde (collares móviles en el ganado), capa de agregación (Gateway LoRa/Wi-Fi), y capa de backend (servidor local con contenedores Docker).
+
+\subsection{Diagrama de Bloques del Sistema}
+
+La Figura~\ref{fig:arch_global} detalla la interconexión de componentes de hardware y los protocolos de comunicación utilizados en cada tramo del flujo de datos.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.4cm,
+    block/.style={rectangle, draw=black, thick, fill=gray!8, text width=3.1cm, align=center, minimum height=1.3cm, font=\small},
+    cloud/.style={rectangle, rounded corners=4pt, draw=black, thick, fill=blue!5, text width=3.4cm, align=center, minimum height=1.3cm, font=\small},
+    server/.style={rectangle, draw=black, thick, fill=green!5, text width=3.3cm, align=center, minimum height=1.3cm, font=\small},
+    arrow/.style={-{Stealth[scale=1.1]}, thick}
+]
+    % Nodos
+    \node[block] (edge) {\textbf{Módulo Edge (Collar)}\\ESP32 + GPS Neo-6M\\+ Radio SX1278};
+    \node[block, right=of edge] (gateway) {\textbf{Módulo Gateway}\\ESP32-CAM\\+ Radio SX1278};
+    \node[cloud, right=of gateway] (broker) {\textbf{Broker MQTT}\\Mosquitto (Docker)\\\footnotesize\texttt{geofence/heartbeat}};
+    
+    \node[server, below=0.7cm of broker] (nodered) {\textbf{Motor de Reglas}\\Node-RED (Docker)\\Ray-Casting \& Alertas};
+    \node[server, left=of nodered] (influx) {\textbf{Base de Datos}\\InfluxDB 1.8\\\footnotesize\texttt{geofence\_config}};
+    \node[server, below=0.7cm of nodered] (ui) {\textbf{Interfaz Web \& Bot}\\Dashboard HUD / Telegram\\Control Bidireccional};
+
+    % Conexiones
+    \draw[arrow] (edge) -- node[above, font=\footnotesize] {LoRa 433~MHz} node[below, font=\footnotesize] {OOK/FSK/LoRa} (gateway);
+    \draw[arrow] (gateway) -- node[above, font=\footnotesize] {Wi-Fi / TCP} node[below, font=\footnotesize] {MQTT Pub} (broker);
+    \draw[arrow] (broker) -- node[right, font=\footnotesize] {Sub / Inyecta TS} (nodered);
+    \draw[arrow] (nodered) -- node[above, font=\footnotesize] {Consulta/Guarda} (influx);
+    \draw[arrow] (nodered) -- node[right, font=\footnotesize] {Alertas / API REST} (ui);
+    \draw[arrow, dashed] (ui) -| node[pos=0.25, below, font=\footnotesize] {POST \texttt{/api/update-fence}} (influx);
+
+\end{tikzpicture}
+\caption{Topología general del sistema de geofencing ganadero y flujo de información entre capas.}
+\label{fig:arch_global}
+\end{figure}
+
+\subsection{Especificaciones Técnicas del Hardware}
+
+Para satisfacer las restricciones de consumo en el collar y las exigencias de conectividad, se seleccionaron dos variantes del microcontrolador ESP32 de Espressif Systems combinadas con transceptores de radiofrecuencia. La Tabla~\ref{tab:hardware_specs} sistematiza las especificaciones operativas y la justificación de diseño para cada componente.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l l l X@{}}
+\toprule
+\textbf{Componente} & \textbf{Modelo / IC} & \textbf{Especificación Principal} & \textbf{Función en el Sistema} \\ \midrule
+\textbf{MCU Borde} & ESP32-WROOM-32D & Dual-core Xtensa LX6, 240~MHz & Procesamiento en collar, temporización con reloj de tiempo real (RTC) en Deep Sleep. \\ \addlinespace
+\textbf{MCU Gateway} & ESP32-WROOM-32D & Dual-core Xtensa LX6, 240~MHz & Receptor base de interrupciones de radio e interfaz Wi-Fi hacia el servidor local. \\ \addlinespace
+\textbf{Radio LoRa} & SX1278 & Frecuencia 433~MHz & Enlace RF de largo alcance ($>4$~km en línea de vista) con modulaciones de espectro ensanchado. \\ \addlinespace
+\textbf{Receptor GPS} & Simulado & Mediante comandos UART al MCU & Adquisición de longitud y latitud. \\ \bottomrule
+\end{tabularx}
+\caption{Especificaciones y asignación de hardware del sistema.}
+\label{tab:hardware_specs}
+\end{table}
+
+El enlace de radiofrecuencia opera en la banda ISM de 433~MHz con modulación LoRa. Esto garantiza un balance entre inmunidad al ruido electromagnético en zonas abiertas, velocidad de transmisión y tiempo en el aire, reduciendo el consumo energético en cada ráfaga de telemetría.
