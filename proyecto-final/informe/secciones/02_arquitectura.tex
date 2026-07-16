@@ -47,8 +47,8 @@ Para satisfacer las restricciones de consumo en el collar y las exigencias de co
 \begin{tabularx}{\textwidth}{@{}l l l X@{}}
 \toprule
 \textbf{Componente} & \textbf{Modelo / IC} & \textbf{Especificación Principal} & \textbf{Función en el Sistema} \\ \midrule
-\textbf{MCU Borde} & ESP32-WROOM-32D & Dual-core Xtensa LX6, 240~MHz & Procesamiento en collar, temporización con reloj de tiempo real (RTC) en Deep Sleep. \\ \addlinespace
-\textbf{MCU Gateway} & ESP32-WROOM-32D & Dual-core Xtensa LX6, 240~MHz & Receptor base de interrupciones de radio e interfaz Wi-Fi hacia el servidor local. \\ \addlinespace
+\textbf{MCU Borde} & ESP32-WROOM-32D & Dual-core & Procesamiento en collar, temporización con reloj de tiempo real (RTC) en Deep Sleep. \\ \addlinespace
+\textbf{MCU Gateway} & ESP32-WROOM-32D & Dual-core & Receptor base de interrupciones de radio e interfaz Wi-Fi hacia el servidor local. \\ \addlinespace
 \textbf{Radio LoRa} & SX1278 & Frecuencia 433~MHz & Enlace RF de largo alcance ($>4$~km en línea de vista) con modulaciones de espectro ensanchado. \\ \addlinespace
 \textbf{Receptor GPS} & Simulado & Mediante comandos UART al MCU & Adquisición de longitud y latitud. \\ \bottomrule
 \end{tabularx}

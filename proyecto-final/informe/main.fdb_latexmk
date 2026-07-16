@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1784243569.99709 "/home/taci/unlp/iot/proyecto-final/informe/main.tex" "main.pdf" "main" 1784243572.07267 0
+["pdflatex"] 1784244141.44382 "/home/taci/unlp/iot/proyecto-final/informe/main.tex" "main.pdf" "main" 1784244143.35894 0
   "/home/taci/texmf/tex/generic/babel-spanish/spanish.ldf" 1622145181 26965 3b6d1655ad716f98e788b1fb9f2e87b8 ""
   "/home/taci/unlp/iot/proyecto-final/informe/main.tex" 1784243287.19493 2153 2eca87ac588e2c3da22b6e4b3d854e5d ""
   "/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1775415801 2971 def0b6c1f0b107b3b936def894055589 ""
@@ -199,15 +199,16 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781907172 5380826 a3bfff71f433a54f017bc880f3b8ea78 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1781907133 2349413 a76f5f28b74e0ff93fb1710db184db70 ""
   "config.tex" 1784068635.88529 1908 47542fed26259841ec967abab830e466 ""
-  "main.aux" 1784243571.82831 3150 2bbcc5db171294bc0bd33d4dfd5eb569 "pdflatex"
-  "main.out" 1784243571.83331 2323 95e2c1d02509e7ffe2b597bcab61c88d "pdflatex"
+  "main.aux" 1784244143.11911 3501 7f82a030156d2bee75ca0867595349dd "pdflatex"
+  "main.out" 1784244143.12211 2462 99497ad327f10c44580da783bdd1abaa "pdflatex"
   "main.tex" 1784243287.19493 2153 2eca87ac588e2c3da22b6e4b3d854e5d ""
   "secciones/01_introduccion.tex" 1784243191.21185 2008 c2d1ac75ac0bd6db7a289ca2369d1ba4 ""
-  "secciones/02_arquitectura.tex" 1784243569.54831 4123 4db68ce2296f83fdc7f2e35f9a965439 ""
+  "secciones/02_arquitectura.tex" 1784243652.08628 4083 7594d27fefc0ef4c932e27d51193a5cf ""
   "secciones/03_firmware.tex" 1784134870.97445 6502 9a76c8555a0f8efca922f3e647abd5ce ""
   "secciones/04_backend_api.tex" 1784079301.13233 2488 f48b34c86db3cc9b99a926bb01bf739a ""
-  "secciones/05_frontend_tg.tex" 1784134685.6598 2649 877105219d203270d8c8522234952bb2 ""
+  "secciones/05_frontend_tg.tex" 1784244138.58911 2926 f5e5fc29860c8d5d6aa5413ec31e7b56 ""
   "secciones/06_conclusiones.tex" 1784079816.65414 954 1c4b43ccb2f80289b8a8bb2e55722a57 ""
+  "secciones/image.png" 1784243942.44017 488115 501f1fd2f9a1d91f4a9d1ea050b58c19 ""
   (generated)
   "main.aux"
   "main.log"
