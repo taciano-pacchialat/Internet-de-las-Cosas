@@ -9,24 +9,24 @@ La Figura~\ref{fig:arch_global} detalla la interconexión de componentes de hard
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.1cm and 1.4cm,
+    node distance=1cm and 2.8cm,
     block/.style={rectangle, draw=black, thick, fill=gray!8, text width=3.1cm, align=center, minimum height=1.3cm, font=\small},
     cloud/.style={rectangle, rounded corners=4pt, draw=black, thick, fill=blue!5, text width=3.4cm, align=center, minimum height=1.3cm, font=\small},
     server/.style={rectangle, draw=black, thick, fill=green!5, text width=3.3cm, align=center, minimum height=1.3cm, font=\small},
     arrow/.style={-{Stealth[scale=1.1]}, thick}
 ]
     % Nodos
-    \node[block] (edge) {\textbf{Módulo Edge (Collar)}\\ESP32\\+ Radio SX1278};
+    \node[block] (edge) {\textbf{Módulo Borde}\\ESP32\\+ SX1278};
     \node[block, right=of edge] (gateway) {\textbf{Módulo Gateway}\\ESP32\\+ Radio SX1278};
     \node[cloud, right=of gateway] (broker) {\textbf{Broker MQTT}\\Mosquitto (Docker)\\\footnotesize\texttt{geofence/heartbeat}};
     
-    \node[server, below=0.7cm of broker] (nodered) {\textbf{Motor de Reglas}\\Node-RED (Docker)\\Ray-Casting \& Alertas};
-    \node[server, left=of nodered] (influx) {\textbf{Base de Datos}\\InfluxDB 1.8\\\footnotesize\texttt{geofence\_config}};
-    \node[server, below=0.7cm of nodered] (ui) {\textbf{Interfaz Web \& Bot}\\Dashboard HUD / Telegram\\Control Bidireccional};
+    \node[server, below=0.7cm of broker] (nodered) {\textbf{Node-RED}\\(Docker)\\Alertas};
+    \node[server, left=of nodered] (influx) {\textbf{Base de Datos}\\InfluxDB\\\footnotesize\texttt{geofence\_config}};
+    \node[server, below=0.7cm of nodered] (ui) {\textbf{Interfaz Web \& Bot}\\Dashboard / Telegram};
 
     % Conexiones
-    \draw[arrow] (edge) -- node[above, font=\footnotesize] {LoRa 433~MHz} node[below, font=\footnotesize] {OOK/FSK/LoRa} (gateway);
-    \draw[arrow] (gateway) -- node[above, font=\footnotesize] {Wi-Fi / TCP} node[below, font=\footnotesize] {MQTT Pub} (broker);
+    \draw[arrow] (edge) -- node[above, font=\footnotesize] {LoRa 433~MHz} node[below, font=\footnotesize] {} (gateway);
+    \draw[arrow] (gateway) -- node[above, font=\footnotesize] {Wi-Fi / TCP} node[below, font=\footnotesize] {MQTT} (broker);
     \draw[arrow] (broker) -- node[right, font=\footnotesize] {Sub / Inyecta TS} (nodered);
     \draw[arrow] (nodered) -- node[above, font=\footnotesize] {Consulta/Guarda} (influx);
     \draw[arrow] (nodered) -- node[right, font=\footnotesize] {Alertas / API REST} (ui);
