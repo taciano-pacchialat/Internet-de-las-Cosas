@@ -1,0 +1,435 @@
+\documentclass[aspectratio=43]{beamer}
+
+% ==============================================================================
+% TEMA Y ESTILO ACADÉMICO MODERNO
+% ==============================================================================
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% Paleta de colores personalizada (Azul Marino / Blanco / Gris Técnico)
+\definecolor{UBlue}{RGB}{14, 43, 92}
+\definecolor{UBlueLight}{RGB}{30, 75, 145}
+\definecolor{UAccent}{RGB}{210, 80, 20}
+\definecolor{CodeBG}{RGB}{245, 246, 248}
+\definecolor{BorderColor}{RGB}{200, 205, 215}
+
+\setbeamercolor{palette primary}{bg=UBlue,fg=white}
+\setbeamercolor{palette secondary}{bg=UBlueLight,fg=white}
+\setbeamercolor{palette tertiary}{bg=UBlue,fg=white}
+\setbeamercolor{palette quaternary}{bg=UBlue,fg=white}
+\setbeamercolor{structure}{fg=UBlue}
+\setbeamercolor{frametitle}{bg=UBlue,fg=white}
+\setbeamercolor{block title}{bg=UBlueLight,fg=white}
+\setbeamercolor{block body}{bg=CodeBG,fg=black}
+\setbeamercolor{alertblock title}{bg=UAccent,fg=white}
+\setbeamercolor{alertblock body}{bg=orange!10,fg=black}
+
+% Configuración de tipografía y elementos
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{enumerate items}[default]
+
+% ==============================================================================
+% PAQUETES
+% ==============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+% Configuración de entorno de código (Listings)
+\lstset{
+    backgroundcolor=\color{CodeBG},
+    basicstyle=\ttfamily\fontsize{6.8pt}{7.8pt}\selectfont,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    frame=single,
+    rulecolor=\color{BorderColor},
+    keywordstyle=\color{UBlueLight}\bfseries,
+    stringstyle=\color{UAccent},
+    commentstyle=\color{gray}\itshape,
+    showstringspaces=false,
+    numbers=none,
+    tabsize=2,
+    xleftmargin=2pt,
+    xrightmargin=2pt
+}
+
+% ==============================================================================
+% METADATOS DE LA PRESENTACIÓN
+% ==============================================================================
+\title[Monitoreo Geoespacial de Ganado IoT]{Sistema de Monitoreo Geoespacial y Disuasión de Ganado en Zonas Rurales Sin Cobertura}
+\subtitle{Arquitectura Desacoplada de 3 Capas: Edge, Gateway y Servidor Docker}
+\author[Trabajo Final]{Defensa de Trabajo Final}
+\institute[UNLP]{
+    Facultad de Informática\\
+    Universidad Nacional de La Plata
+}
+\date{\today}
+
+% ==============================================================================
+% INICIO DEL DOCUMENTO
+% ==============================================================================
+\begin{document}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 1: PORTADA
+% ------------------------------------------------------------------------------
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 2: AGENDA
+% ------------------------------------------------------------------------------
+\begin{frame}{Agenda de la Presentación}
+    \tableofcontents
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 1: CONTEXTO Y PROBLEMÁTICA
+% ==============================================================================
+\section{Contexto y Problemática}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 3: PROBLEMA
+% ------------------------------------------------------------------------------
+\begin{frame}{Contexto y Problemática en la Ganadería Extensiva}
+    \begin{block}{Restricciones Críticas del Entorno Rural}
+        \small
+        \begin{itemize}
+            \item \textbf{Inexistencia de Cobertura Celular:} Las zonas rurales de pastoreo extensivo carecen de conectividad 4G/LTE y redes eléctricas fijas.
+            \item \textbf{Autonomía Energética Extrema:} Los dispositivos adosados al animal (collares) deben operar durante meses con baterías de tamaño y peso acotados.
+            \item \textbf{Latencia en la Contención:} La detección tradicional por satélite no permite una reacción inmediata cuando el animal traspasa un límite de propiedad.
+        \end{itemize}
+    \end{block}
+
+    \begin{alertblock}{Objetivo Tecnológico}
+        \small
+        Diseñar e implementar un sistema que combine \textbf{telemetría geoespacial de ultra bajo consumo}, \textbf{disuasión acústica instantánea en el borde} y \textbf{orquestación centralizada} sobre radiofrecuencia libre (LoRa 433~MHz).
+    \end{alertblock}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 4: SOLUCIÓN ARQUITECTÓNICA
+% ------------------------------------------------------------------------------
+\begin{frame}{Solución Propuesta: Desacoplamiento en 3 Capas}
+    \small
+    Para superar estas restricciones, el sistema distribuye las responsabilidades en tres capas especializadas:
+    
+    \vspace{0.2cm}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{p{2.2cm} p{2.8cm} p{4.6cm}}
+            \toprule
+            \textbf{Capa} & \textbf{Hardware} & \textbf{Responsabilidad Principal} \\
+            \midrule
+            \textbf{1. Edge (Collar)} & ESP32 + NEO-6M + SX1278 + Zumbador & Adquisición GPS, Deep Sleep, cálculo local de Bounding Box y disuasión autónoma. \\
+            \addlinespace
+            \textbf{2. Gateway} & ESP32 + SX1278 + Wi-Fi & Traducción LoRa $\rightarrow$ MQTT, medición física (RSSI/SNR) y auto-descubrimiento. \\
+            \addlinespace
+            \textbf{3. Servidor Local} & Nginx + Node-RED + InfluxDB + Mosquitto & Ingesta temporal, Ray-Casting ($\mathcal{O}(N)$), mapa Web HUD y bot de Telegram. \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 2: ARQUITECTURA DEL SISTEMA
+% ==============================================================================
+\section{Arquitectura del Sistema}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 5: DIAGRAMA GENERAL DE ARQUITECTURA
+% ------------------------------------------------------------------------------
+\begin{frame}{Arquitectura General del Sistema}
+    \begin{figure}
+        \centering
+        \resizebox{0.96\textwidth}{!}{
+        \begin{tikzpicture}[
+            node distance=1.4cm and 1.6cm,
+            box/.style={draw, rounded corners=2pt, minimum height=1.0cm, align=center, font=\footnotesize, fill=white, line width=0.7pt},
+            edgebox/.style={box, draw=UBlue, fill=UBlue!5},
+            gwbox/.style={box, draw=UAccent, fill=UAccent!5},
+            srvbox/.style={box, draw=black, fill=CodeBG},
+            arrow/.style={->, >=Stealth, line width=0.8pt, color=UBlue}
+        ]
+            % Nodos de Capa Edge
+            \node[edgebox] (gps) {GPS\\NEO-6M};
+            \node[edgebox, right=0.6cm of gps] (edge) {ESP32 Edge\\(Deep Sleep + RTC)};
+            \node[edgebox, right=0.6cm of edge] (sx_tx) {Transceptor\\SX1278 (TX)};
+            \node[edgebox, below=0.4cm of edge] (buzzer) {Zumbador\\PWM};
+
+            % Nodos de Capa Gateway
+            \node[gwbox, right=1.4cm of sx_tx] (sx_rx) {Transceptor\\SX1278 (RX)};
+            \node[gwbox, right=0.6cm of sx_rx] (gw) {ESP32 Gateway\\(mDNS + Wi-Fi)};
+
+            % Nodos de Capa Servidor (Docker)
+            \node[srvbox, below=1.1cm of gw] (mqtt) {Mosquitto\\MQTT :1883};
+            \node[srvbox, left=1.0cm of mqtt] (nodered) {Node-RED\\:1880};
+            \node[srvbox, left=1.0cm of nodered] (influx) {InfluxDB\\:8086};
+            \node[srvbox, below=0.7cm of nodered] (nginx) {Nginx Proxy\\:80 (CORS libre)};
+
+            % Nodos Externos
+            \node[box, fill=yellow!10, left=1.2cm of nginx] (frontend) {Web HUD\\React / Leaflet};
+            \node[box, fill=green!10, right=1.2cm of nginx] (telegram) {Telegram Bot\\Alertas};
+
+            % Conexiones Edge
+            \draw[arrow] (gps) -- (edge);
+            \draw[arrow] (edge) -- (sx_tx);
+            \draw[arrow] (edge) -- (buzzer);
+
+            % Conexión LoRa
+            \draw[arrow, color=UAccent, dashed, line width=1pt] (sx_tx) -- node[above, font=\tiny] {LoRa 433~MHz} node[below, font=\tiny] {JSON compact} (sx_rx);
+
+            % Conexiones Gateway
+            \draw[arrow] (sx_rx) -- (gw);
+            \draw[arrow] (gw) -- node[right, font=\tiny] {Wi-Fi / TCP} (mqtt);
+
+            % Conexiones Servidor
+            \draw[arrow] (mqtt) -- node[above, font=\tiny] {geofence/heartbeat} (nodered);
+            \draw[arrow] (nodered) -- node[above, font=\tiny] {series temporales} (influx);
+            \draw[arrow, <->] (nginx) -- (nodered);
+            \draw[arrow, <->] (nginx) -- (influx);
+
+            % Conexiones Externas
+            \draw[arrow, <->] (frontend) -- node[above, font=\tiny] {HTTP :80} (nginx);
+            \draw[arrow] (nodered) -| (telegram);
+
+            % Contornos de Capas
+            \begin{scope}[on background layer]
+                \node[draw=UBlue, dashed, fit=(gps)(edge)(sx_tx)(buzzer), label={[font=\scriptsize\bfseries, color=UBlue]above:Capa 1: Módulo Edge (Collar)}] {};
+                \node[draw=UAccent, dashed, fit=(sx_rx)(gw), label={[font=\scriptsize\bfseries, color=UAccent]above:Capa 2: Gateway}] {};
+                \node[draw=gray, dashed, fit=(mqtt)(nodered)(influx)(nginx), label={[font=\scriptsize\bfseries]above:Capa 3: Servidor en Docker Compose}] {};
+            \end{scope}
+        \end{tikzpicture}
+        }
+    \end{figure}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 6: CAPA EDGE Y GESTIÓN DE ENERGÍA
+% ------------------------------------------------------------------------------
+\begin{frame}[fragile]{Capa 1: Módulo Edge y Preservación de Contexto}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Estrategia de Deep Sleep}
+                \scriptsize
+                \begin{itemize}
+                    \item El microcontrolador apaga CPU y periféricos de radio el 99\% del tiempo.
+                    \item Despierta por temporizador RTC cada $N$ minutos o por movimiento.
+                    \item El tiempo activo en aire (\textit{Time-on-Air}) se minimiza enviando un payload $<100$ bytes.
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Memoria Estática (\texttt{RTC\_DATA\_ATTR})}
+                \scriptsize
+                Preserva las coordenadas y límites sin gastar energía en re-inicializaciones:
+            \end{block}
+            \begin{lstlisting}[language=C++]
+// rtc_state.h
+extern RTC_DATA_ATTR double rtc_lat;
+extern RTC_DATA_ATTR double rtc_lon;
+extern RTC_DATA_ATTR uint32_t wake_count;
+extern RTC_DATA_ATTR double min_lat;
+extern RTC_DATA_ATTR double max_lat;
+            \end{lstlisting}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 7: ALGORITMO GEOMÉTRICO EN EL BORDE
+% ------------------------------------------------------------------------------
+\begin{frame}[fragile]{Algoritmo Geométrico en el Borde: Bounding Box ($\mathcal{O}(1)$)}
+    \begin{block}{¿Por qué un Bounding Box local en el collar?}
+        \small
+        El collar almacena únicamente los 4 extremos cardinales (\texttt{min\_lat}, \texttt{max\_lat}, \texttt{min\_lon}, \texttt{max\_lon}) del potrero para ahorrar RAM y evitar sincronizaciones pesadas de polígonos por LoRa.
+    \end{block}
+
+    \begin{columns}[T]
+        \begin{column}{0.54\textwidth}
+            \begin{lstlisting}[language=C++]
+// Verificacion local O(1)
+bool geofence_is_inside(double lat, double lon,
+                        double min_lat, double max_lat,
+                        double min_lon, double max_lon) {
+  if (lat == 0.0 && lon == 0.0) return true;
+  return (lat >= min_lat && lat <= max_lat &&
+          lon >= min_lon && lon <= max_lon);
+}
+            \end{lstlisting}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \begin{alertblock}{Autonomía Disuasoria}
+                \scriptsize
+                Si \texttt{geofence\_is\_inside()} retorna \texttt{false}, el collar enciende el \textbf{zumbador PWM} de inmediato, logrando disuasión acústica real \textbf{sin depender de la nube}.
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 8: CAPA GATEWAY Y AUTO-DESCUBRIMIENTO
+% ------------------------------------------------------------------------------
+\begin{frame}[fragile]{Capa 2: Módulo Gateway y Auto-descubrimiento}
+    \begin{block}{Traducción de Protocolo (LoRa $\rightarrow$ MQTT)}
+        \small
+        El Gateway recibe las tramas en 433~MHz, mide la calidad de canal (RSSI/SNR) y encapsula los datos hacia Mosquitto en el tópico \texttt{geofence/heartbeat}:
+    \end{block}
+
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \begin{lstlisting}[language=C++]
+// gateway-module.cpp: Enriquecimiento
+snprintf(mqtt_payload, sizeof(mqtt_payload),
+  "{\"device_id\":\"%s\",\"lat\":%.6f,"
+  "\"lon\":%.6f,\"fence_status\":\"%s\","
+  "\"rssi\":%d,\"snr\":%.2f}",
+  dev_id, lat, lon, status, rssi, snr);
+mqtt_init_and_publish(mqtt_payload);
+            \end{lstlisting}
+        \end{column}
+        \begin{column}{0.46\textwidth}
+            \begin{block}{Auto-descubrimiento (mDNS / Beacon)}
+                \scriptsize
+                Evita IPs fijas en código ante cambios de router o entorno LAN:
+                \begin{itemize}
+                    \item Escucha Beacons / UDP Broadcast.
+                    \item Header: \texttt{GEOFENCE\_MQTT:<IP>:<PORT>}
+                    \item Conexión dinámica al broker.
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 9: CAPA SERVIDOR DOCKER Y NGINX
+% ------------------------------------------------------------------------------
+\begin{frame}{Capa 3: Servidor en Docker Compose y Reverse Proxy}
+    \small
+    Los servicios backend corren en una red bridge privada y se exponen al cliente web mediante un \textbf{Reverse Proxy en Nginx (Puerto 80)}:
+
+    \vspace{0.15cm}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{p{2.6cm} p{3.2cm} p{4.0cm}}
+            \toprule
+            \textbf{Petición Externa (:80)} & \textbf{Destino Interno (Docker)} & \textbf{Propósito Técnico} \\
+            \midrule
+            \texttt{GET /} & \texttt{geofence-frontend:80} & Archivos estáticos del mapa React. \\
+            \texttt{POST /api/update-fence} & \texttt{geofence-nodered:1880} & Actualizar geometría de geocerca. \\
+            \texttt{GET /api/fence} & \texttt{geofence-nodered:1880} & Consultar perímetro en curso. \\
+            \texttt{POST /query} & \texttt{geofence-influxdb:8086} & Consultas InfluxQL directas. \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \begin{alertblock}{Eliminación de Errores CORS}
+        \scriptsize
+        Al unificar todo el tráfico bajo el puerto 80 en \texttt{nginx.conf}, el navegador procesa las peticiones como llamadas \textit{Same-Origin}, eliminando cabezales CORS complejos y aislamiento.
+    \end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 3: FLUJO DE DATOS Y ALGORITMOS DUALES
+% ==============================================================================
+\section{Flujo de Datos y Algoritmo Dual}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 10: INGESTIÓN DE SERIES TEMPORALES
+% ------------------------------------------------------------------------------
+\begin{frame}[fragile]{Flujo de Datos: Ingestión en Node-RED}
+    \begin{block}{Tábula \texttt{flow\_tab\_mqtt\_influx} en \texttt{flows.json}}
+        \scriptsize
+        1. El nodo \texttt{mqtt in} captura el mensaje de \texttt{geofence/heartbeat}.\\
+        2. El nodo función \texttt{Parsear Heartbeat} transforma el JSON para persistirlo en InfluxDB:
+    \end{block}
+
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{lstlisting}[language=C++]
+// Estructura generada por Node-RED
+var fields = {
+  latitude: parseFloat(raw.lat),
+  longitude: parseFloat(raw.lon),
+  rssi: parseInt(raw.rssi),
+  snr: parseFloat(raw.snr),
+  battery: parseFloat(raw.battery),
+  wake_count: parseInt(raw.wake_count)
+};
+var tags = { device_id: raw.device_id };
+            \end{lstlisting}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Persistencia en InfluxDB}
+                \scriptsize
+                Escribe en la medición \textbf{\texttt{cattle\_position}} (\texttt{geofence\_db}).
+                \vspace{0.15cm}
+                
+                Permite consultar historiales y trayectorias exactas por dispositivo en ventanas móviles (\texttt{now() - 24h}).
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 11: ALGORITMO EN SERVIDOR Y ALERTAS
+% ------------------------------------------------------------------------------
+\begin{frame}{Algoritmo en Servidor: Ray-Casting ($\mathcal{O}(N)$) y Alertas}
+    \begin{block}{¿Por qué calcular nuevamente la geocerca en el servidor?}
+        \small
+        Mientras el collar usa un Bounding Box ($\mathcal{O}(1)$) para contención acústica, Node-RED evalúa las coordenadas contra el polígono irregular de $N$ vértices mediante \textbf{Ray-Casting (Point-in-Polygon)} para determinar la \textbf{verdad canónica}.
+    \end{block}
+
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \small
+            \begin{itemize}
+                \item \textbf{Sondeo Continuo:} Cron en Node-RED consulta InfluxDB cada 15~s.
+                \item \textbf{Rate Limiting ($40\text{ s}$):} Suprime el envío repetitivo de alarmas si el animal camina sobre el límite.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{alertblock}{Gestión por Telegram Bot}
+                \scriptsize
+                Si hay violación geométrica verídica y el dispositivo no está silenciado (\texttt{cattle\_mute\_status} / comandos \texttt{/mute}), se emite una alerta REST hacia la API de Telegram con botones interactivos.
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 4: CONCLUSIONES Y DEFENSA
+% ==============================================================================
+\section{Conclusiones y Defensa}
+
+% ------------------------------------------------------------------------------
+% DIAPOSITIVA 12: CONCLUSIONES
+% ------------------------------------------------------------------------------
+\begin{frame}{Conclusiones y Viabilidad Técnica}
+    \begin{block}{Aportes Principales de la Ingeniería}
+        \small
+        \begin{enumerate}
+            \item \textbf{Autonomía Resiliente:} La separación entre Bounding Box ($\mathcal{O}(1)$) en el collar y Ray-Casting ($\mathcal{O}(N)$) en el servidor garantiza contención acústica aún ante pérdida total del enlace LoRa.
+            \item \textbf{Eficiencia Energética y de Espectro:} El uso de \texttt{RTC\_DATA\_ATTR} con Deep Sleep y paquetes LoRa compactos minimiza el consumo eléctrico y el \textit{Time-on-Air}.
+            \item \textbf{Infraestructura Limpia:} Docker Compose junto a Nginx unifican la seguridad, simplifican la red y eliminan colisiones CORS en la web.
+        \end{enumerate}
+    \end{block}
+
+    \vspace{0.2cm}
+    \begin{center}
+        \Large \textbf{¡Muchas Gracias!}\\
+        \normalsize Espacio abierto para preguntas del jurado.
+    \end{center}
+\end{frame}
+
+\end{document}

@@ -10,7 +10,7 @@ El collar opera bajo restricciones energéticas. Para maximizar su autonomía si
 Durante la mayor parte de su ciclo operativo, el microcontrolador permanece en estado de bajo consumo profundo (\textit{Deep Sleep}), donde se desenergizan los núcleos de CPU, el controlador de radio LoRa y los periféricos estándar, reduciendo el consumo total a ($\mu$A). Para mantener la coherencia de telemetría entre ciclos de sueño sin acceder al almacenamiento no volátil Flash (lo que incrementaría el consumo y desgastaría el medio), las variables de control y contadores de secuencia se almacenan en la memoria estática lenta del RTC (\texttt{RTC\_DATA\_ATTR}). En este dominio de memoria persisten el contador incremental de despertares (\texttt{boot\_count}), las últimas coordenadas validadas y el estado actual de alarma del cerco.
 
 
-El temporizador del RTC activa el sistema periódicamente cada 30~segundos. La Figura~\ref{fig:edge_states} ilustra el flujo secuencial de tareas ejecutado en cada ciclo de \textit{Wakeup}.
+El temporizador del RTC activa el sistema periódiente cada 30~segundos. La Figura~\ref{fig:edge_states} ilustra el flujo secuencial de tareas ejecutado en cada ciclo de \textit{Wakeup}.
 
 \begin{figure}[H]
 \centering

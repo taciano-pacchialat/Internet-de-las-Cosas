@@ -16,8 +16,8 @@ La Figura~\ref{fig:arch_global} detalla la interconexión de componentes de hard
     arrow/.style={-{Stealth[scale=1.1]}, thick}
 ]
     % Nodos
-    \node[block] (edge) {\textbf{Módulo Edge (Collar)}\\ESP32 + GPS Neo-6M\\+ Radio SX1278};
-    \node[block, right=of edge] (gateway) {\textbf{Módulo Gateway}\\ESP32-CAM\\+ Radio SX1278};
+    \node[block] (edge) {\textbf{Módulo Edge (Collar)}\\ESP32\\+ Radio SX1278};
+    \node[block, right=of edge] (gateway) {\textbf{Módulo Gateway}\\ESP32\\+ Radio SX1278};
     \node[cloud, right=of gateway] (broker) {\textbf{Broker MQTT}\\Mosquitto (Docker)\\\footnotesize\texttt{geofence/heartbeat}};
     
     \node[server, below=0.7cm of broker] (nodered) {\textbf{Motor de Reglas}\\Node-RED (Docker)\\Ray-Casting \& Alertas};

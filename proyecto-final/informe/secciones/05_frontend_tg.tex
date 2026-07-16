@@ -6,7 +6,7 @@ La interacción del operador con el sistema se realiza a través de dos canales:
 
 El tablero de control web funciona como una aplicación de página única, estructurada sobre primitivas de HTML5, JavaScript moderno (ES6+) y CSS nativo sin dependencias pesadas.
 
-La representación gráfica del terreno y de las unidades ganaderas se ejecuta mediante la biblioteca de \textit{Leaflet.js}. Al iniciar la sesión, el cliente realiza una petición HTTP inicial hacia el endpoint \texttt{GET /api/fence/current} para obtener el cerco activo de la base de datos y trazar el polígono delimitador sobre la capa del mapa.
+La representación gráfica del terreno y de las unidades ganaderas se ejecuta mediante la biblioteca de \textit{Leaflet.js}. Al iniciar la sesión, el cliente realiza una petición HTTP inicial hacia el endpoint \texttt{GET /api/fence/current} para obtenerj el cerco activo de la base de datos y trazar el polígono delimitador sobre la capa del mapa.
 
 De manera paralela, la aplicación establece un canal de comunicación dúplex persistente mediante \textit{WebSocket} contra el motor Node-RED. Cada vez que el Gateway ingesta un nuevo paquete de telemetría por radio LoRa, el servidor retransmite el evento \texttt{update\_location} a los clientes web conectados. La lógica del frontend actualiza de inmediato las coordenadas del marcador correspondiente al animal, la información del enlace, el nivel de voltaje de la batería y la última marca de tiempo de sincronización.
 
